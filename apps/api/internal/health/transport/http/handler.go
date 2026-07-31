@@ -1,8 +1,8 @@
 package http
 
 import (
-	"net/http"
 	"nexus-be/internal/health/application"
+	"nexus-be/pkg/httpresponse"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,13 +20,9 @@ func NewHandler(s application.Service) *Handler {
 func (h *Handler) Health(c *gin.Context) {
 	resp, err := h.service.Check(c.Request.Context())
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{
-				"message": err.Error(),
-			},
-		)
+		httpresponse.Error(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, resp)
+	httpresponse.OK(c, resp)
 }
+
