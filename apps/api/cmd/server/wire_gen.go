@@ -11,6 +11,8 @@ import (
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
 	"github.com/iqbaljlldn/nexus/pkg/router"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -20,8 +22,8 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeRouter(log *zap.Logger) *gin.Engine {
-	service := application.NewService(log)
+func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
+	service := application.NewService(log, db, redisClient)
 	handler := http.NewHandler(service)
 	v := provideRouters(handler)
 	engine := NewRouter(log, v)

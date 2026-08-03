@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/iqbaljlldn/nexus/pkg/cache"
 	"github.com/iqbaljlldn/nexus/pkg/config"
+	"github.com/iqbaljlldn/nexus/pkg/database"
 	"github.com/iqbaljlldn/nexus/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -23,8 +25,21 @@ func main() {
 	defer func() {
 		_ = log.Sync()
 	}()
+	// Initialize Database
+	db, err := database.NewPostgres(cfg.Database)
+	if err != nil {
+		log.Fatal("failed to connect to database", zap.Error(err))
+	}
+	defer db.Close()
 
-	r := InitializeRouter(log)
+	// Initialize Redis
+	redisClient, err := cache.NewRedis(cfg.Redis)
+	if err != nil {
+		log.Fatal("failed to connect to redis", zap.Error(err))
+	}
+	defer redisClient.Close()
+
+	r := InitializeRouter(log, db, redisClient)
 
 	if err := r.Run(); err != nil {
 		log.Fatal("Server failed to run", zap.Error(err))

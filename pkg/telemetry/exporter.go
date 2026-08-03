@@ -2,7 +2,8 @@ package telemetry
 
 import (
 	"context"
-	"fmt"
+
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -25,7 +26,10 @@ func newTraceExporter(ctx context.Context, cfg Config) (sdktrace.SpanExporter, e
 
 	exporter, err := otlptracehttp.New(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating trace exporter: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating trace exporter",
+			Err:     err,
+		}
 	}
 
 	return exporter, nil
@@ -43,7 +47,10 @@ func newMetricExporter(ctx context.Context, cfg Config) (sdkmetric.Exporter, err
 
 	exporter, err := otlpmetrichttp.New(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating metric exporter: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating metric exporter",
+			Err:     err,
+		}
 	}
 
 	return exporter, nil
@@ -54,7 +61,10 @@ func newMetricExporter(ctx context.Context, cfg Config) (sdkmetric.Exporter, err
 func newPrometheusExporter() (*prometheus.Exporter, error) {
 	exporter, err := prometheus.New()
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating prometheus exporter: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating prometheus exporter",
+			Err:     err,
+		}
 	}
 
 	return exporter, nil

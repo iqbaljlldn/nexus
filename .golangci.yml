@@ -16,6 +16,8 @@ linters-settings:
           - gopkg.in/natefinch/lumberjack.v2
           - go.opentelemetry.io
           - github.com/prometheus
+          - github.com/redis/go-redis/v9
+          - github.com/jackc/pgx/v5
 
 linters:
   disable-all: true

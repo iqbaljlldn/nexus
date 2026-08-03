@@ -2,8 +2,9 @@ package telemetry
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 
 	"go.opentelemetry.io/otel"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -40,7 +41,10 @@ func Init(ctx context.Context, cfg Config) (Shutdown, error) {
 	if cfg.EnableTraces && cfg.OTLPEndpoint != "" {
 		tp, err := initTracerProvider(ctx, cfg, res)
 		if err != nil {
-			return noopShutdown, fmt.Errorf("telemetry: init tracer: %w", err)
+			return noopShutdown, &pkgerrors.InfrastructureError{
+				Message: "telemetry: init tracer",
+				Err:     err,
+			}
 		}
 		otel.SetTracerProvider(tp)
 		shutdownFuncs = append(shutdownFuncs, tp.Shutdown)
@@ -50,7 +54,10 @@ func Init(ctx context.Context, cfg Config) (Shutdown, error) {
 	if cfg.EnableMetrics {
 		mp, err := initMeterProvider(ctx, cfg, res)
 		if err != nil {
-			return noopShutdown, fmt.Errorf("telemetry: init meter: %w", err)
+			return noopShutdown, &pkgerrors.InfrastructureError{
+				Message: "telemetry: init meter",
+				Err:     err,
+			}
 		}
 		otel.SetMeterProvider(mp)
 		shutdownFuncs = append(shutdownFuncs, mp.Shutdown)

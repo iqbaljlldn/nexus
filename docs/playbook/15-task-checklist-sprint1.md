@@ -173,10 +173,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi handler `/healthz` (selalu 200, tanpa dependency check)
-- [ ] Implementasi handler `/readyz` (ping DB `SELECT 1`, ping Redis `PING`)
-- [ ] Wire ke router Gin
-- [ ] Test manual: matikan container `postgres`, verifikasi `/readyz` → 503
+- [x] Implementasi handler `/healthz` (selalu 200, tanpa dependency check)
+- [x] Implementasi handler `/readyz` (ping DB `SELECT 1`, ping Redis `PING`)
+- [x] Wire ke router Gin
+- [x] Test manual: matikan container `postgres`, verifikasi `/readyz` → 503
 
 ---
 

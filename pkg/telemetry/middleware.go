@@ -1,8 +1,9 @@
 package telemetry
 
 import (
-	"fmt"
 	"time"
+
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -74,7 +75,10 @@ func SetupMiddlewares(serviceName string, m *Metrics) []gin.HandlerFunc {
 func MustNewMetrics(serviceName string) *Metrics {
 	m, err := NewMetrics(serviceName)
 	if err != nil {
-		panic(fmt.Sprintf("telemetry: failed to create metrics: %v", err))
+		panic(&pkgerrors.InfrastructureError{
+			Message: "telemetry: failed to create metrics",
+			Err:     err,
+		})
 	}
 	return m
 }

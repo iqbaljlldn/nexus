@@ -1,8 +1,9 @@
 package telemetry
 
 import (
-	"fmt"
 	"time"
+
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -36,7 +37,10 @@ func NewMetrics(serviceName string) (*Metrics, error) {
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating request duration histogram: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating request duration histogram",
+			Err:     err,
+		}
 	}
 
 	reqTotal, err := meter.Int64Counter(
@@ -44,7 +48,10 @@ func NewMetrics(serviceName string) (*Metrics, error) {
 		metric.WithDescription("Total number of HTTP server requests"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating request total counter: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating request total counter",
+			Err:     err,
+		}
 	}
 
 	activeConns, err := meter.Int64UpDownCounter(
@@ -52,7 +59,10 @@ func NewMetrics(serviceName string) (*Metrics, error) {
 		metric.WithDescription("Number of active HTTP connections"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: creating active connections gauge: %w", err)
+		return nil, &pkgerrors.InfrastructureError{
+			Message: "telemetry: creating active connections gauge",
+			Err:     err,
+		}
 	}
 
 	return &Metrics{

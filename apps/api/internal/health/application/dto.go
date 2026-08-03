@@ -1,5 +1,7 @@
 package application
 
+// @Description Health response
 type HealthResponse struct {
-	Status string `json:"status"`
+	// @Description Health status
+	Status string `json:"status" example:"ok"`
 }
