@@ -1,10 +1,14 @@
 package main
 
 import (
-	"nexus-be/pkg/router"
+	"github.com/iqbaljlldn/nexus/pkg/router"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+
+	_ "github.com/iqbaljlldn/nexus/apps/api/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func NewRouter(
@@ -19,6 +23,8 @@ func NewRouter(
 	for _, router := range routers {
 		router.RegisterRoutes(api)
 	}
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

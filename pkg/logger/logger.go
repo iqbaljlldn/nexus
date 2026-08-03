@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"nexus-be/pkg/config"
 	"os"
+
+	"github.com/iqbaljlldn/nexus/pkg/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -13,7 +14,7 @@ import (
 // (misal: zap.ServeHTTP) untuk mengubah level log secara live.
 var Level = zap.NewAtomicLevel()
 
-func New(cfg config.Config) *zap.Logger {
+func New(cfg config.Config) (*zap.Logger, error) {
 	Level.SetLevel(parseLevel(cfg.Logger.Level))
 
 	encoderConfig := zap.NewProductionEncoderConfig()
@@ -61,7 +62,7 @@ func New(cfg config.Config) *zap.Logger {
 	return logger.With(
 		zap.String("service", cfg.ServiceName),
 		zap.String("environment", cfg.Env),
-	)
+	), nil
 }
 
 func newCore(encoder zapcore.Encoder, writer zapcore.WriteSyncer, level zapcore.LevelEnabler) zapcore.Core {

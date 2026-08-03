@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	pkgerrors "nexus-be/pkg/errors"
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 )
 
 // Envelope Structs

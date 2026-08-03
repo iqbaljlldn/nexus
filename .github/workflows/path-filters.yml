@@ -1,0 +1,26 @@
+name: Path Filters
+
+on:
+  workflow_call:
+    outputs:
+      api:
+        description: "True if backend api files changed"
+        value: ${{ steps.filter.outputs.api }}
+      web:
+        description: "True if frontend web files changed"
+        value: ${{ steps.filter.outputs.web }}
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'

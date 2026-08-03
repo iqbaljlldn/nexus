@@ -1,4 +1,4 @@
-module nexus-be/pkg
+module github.com/iqbaljlldn/nexus/pkg
 
 go 1.25.2
 

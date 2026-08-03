@@ -1,8 +1,8 @@
 package http
 
 import (
-	"nexus-be/internal/health/application"
-	"nexus-be/pkg/httpresponse"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
+	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,4 +25,3 @@ func (h *Handler) Health(c *gin.Context) {
 	}
 	httpresponse.OK(c, resp)
 }
-

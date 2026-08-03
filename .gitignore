@@ -1,0 +1,6 @@
+.husky/
+node_modules
+.env.*
+!.env.example
+.vscode/
+.idea/

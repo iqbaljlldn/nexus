@@ -5,7 +5,7 @@ const (
 	CodeUserNotFound         = "USER_NOT_FOUND"
 	CodeUserUnauthorized     = "USER_UNAUTHORIZED"
 	CodeUserAlreadyExists    = "USER_ALREADY_EXISTS"
-	CodeInvalidCredentials   = "INVALID_CREDENTIALS"
+	CodeInvalidCredentials   = "INVALID_CREDENTIALS" //nolint:gosec // not a credential
 	CodeMissingRequiredField = "MISSING_REQUIRED_FIELD"
 	CodeInvalidFieldFormat   = "INVALID_FIELD_FORMAT"
 

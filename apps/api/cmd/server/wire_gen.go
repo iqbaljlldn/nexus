@@ -8,10 +8,14 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
+	"github.com/iqbaljlldn/nexus/pkg/router"
 	"go.uber.org/zap"
-	"nexus-be/internal/health/application"
-	"nexus-be/internal/health/transport/http"
-	"nexus-be/pkg/router"
+)
+
+import (
+	_ "github.com/iqbaljlldn/nexus/apps/api/docs"
 )
 
 // Injectors from wire.go:

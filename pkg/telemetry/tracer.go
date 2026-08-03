@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/sdk/resource"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -144,5 +144,5 @@ func servePrometheus(cfg Config) {
 	mux.Handle("/metrics", promhttp.Handler())
 
 	// Blocking call — dijalankan di goroutine oleh Init().
-	_ = http.ListenAndServe(":"+port, mux)
+	_ = http.ListenAndServe(":"+port, mux) //nolint:gosec // this is just internal prometheus metric server
 }

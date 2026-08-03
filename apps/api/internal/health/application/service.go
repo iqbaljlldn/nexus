@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"nexus-be/pkg/logger"
+	"github.com/iqbaljlldn/nexus/pkg/logger"
 
 	"go.uber.org/zap"
 )

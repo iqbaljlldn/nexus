@@ -1,19 +1,32 @@
 package main
 
 import (
-	"nexus-be/pkg/config"
-	"nexus-be/pkg/logger"
+	"github.com/iqbaljlldn/nexus/pkg/config"
+	"github.com/iqbaljlldn/nexus/pkg/logger"
+	"go.uber.org/zap"
 )
 
+// @title           Nexus API
+// @version         1.0
+// @description     This is the Nexus API server.
+// @host            localhost:8080
+// @BasePath        /api/v1
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
-	log := logger.New(*cfg)
-	defer log.Sync()
+	log, err := logger.New(*cfg)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = log.Sync()
+	}()
 
 	r := InitializeRouter(log)
 
-	r.Run()
+	if err := r.Run(); err != nil {
+		log.Fatal("Server failed to run", zap.Error(err))
+	}
 }

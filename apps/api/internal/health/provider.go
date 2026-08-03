@@ -1,9 +1,9 @@
 package health
 
 import (
-	"nexus-be/internal/health/application"
-	httpHandler "nexus-be/internal/health/transport/http"
-	"nexus-be/pkg/router"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
+	httpHandler "github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
+	"github.com/iqbaljlldn/nexus/pkg/router"
 
 	"github.com/google/wire"
 )

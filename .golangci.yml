@@ -1,0 +1,30 @@
+linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+          - "$all"
+        allow:
+          - $gostd
+          - github.com/iqbaljlldn/nexus
+          - go.uber.org/zap
+          - github.com/gin-gonic/gin
+          - github.com/google/wire
+          - github.com/swaggo/gin-swagger
+          - github.com/swaggo/files
+          - github.com/google/uuid
+          - gopkg.in/natefinch/lumberjack.v2
+          - go.opentelemetry.io
+          - github.com/prometheus
+
+linters:
+  disable-all: true
+  enable:
+    - depguard
+    - gosec
+    - errcheck
+    - govet
+    - gofmt
+
+run:
+  timeout: 5m

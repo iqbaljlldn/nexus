@@ -8,8 +8,8 @@ import (
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
-	"nexus-be/internal/health"
-	"nexus-be/pkg/router"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/health"
+	"github.com/iqbaljlldn/nexus/pkg/router"
 )
 
 func provideRouters(healthRouter router.ModuleRouter) []router.ModuleRouter {
