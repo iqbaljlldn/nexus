@@ -196,11 +196,11 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Install/aktifkan extension `citext` dan fungsi UUID v7 (library `pg_uuidv7` atau fungsi custom PL/pgSQL)
-- [ ] Tulis migrasi `20260101000001_create_users_table.sql` (up & down)
-- [ ] Tulis migrasi `20260101000002_create_sessions_table.sql` (up & down)
-- [ ] Setup tool migration runner (`golang-migrate` atau setara) di `scripts/`
-- [ ] Verifikasi `migrate up` dan `migrate down` berjalan bersih di environment lokal
+- [x] Install/aktifkan extension `citext` dan fungsi UUID v7 (library `pg_uuidv7` atau fungsi custom PL/pgSQL)
+- [x] Tulis migrasi `20260101000001_create_users_table.sql` (up & down)
+- [x] Tulis migrasi `20260101000002_create_sessions_table.sql` (up & down)
+- [x] Setup tool migration runner (`golang-migrate` atau setara) di `scripts/`
+- [x] Verifikasi `migrate up` dan `migrate down` berjalan bersih di environment lokal
 
 #### Task 2.1.2: Setup sqlc untuk Domain Identity
 
