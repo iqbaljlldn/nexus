@@ -10,6 +10,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
       - ./postgres/logs:/var/log/postgresql
+      - ./init-citext.sql:/docker-entrypoint-initdb.d/init-citext.sql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 1m30s
@@ -234,8 +235,8 @@ services:
   api:
     image: ghcr.io/iqbaljlldn/nexus/api:latest
     build:
-      context: ../../apps/api
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     env_file: ./env
     labels:

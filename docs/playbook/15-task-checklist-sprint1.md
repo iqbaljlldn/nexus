@@ -108,9 +108,9 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Stage 1: `golang:1.25` — `go build`
-- [ ] Stage 2: `gcr.io/distroless/static` atau `alpine` minimal — copy binary
-- [ ] Verifikasi image build & run
+- [x] Stage 1: `golang:1.25` — `go build`
+- [x] Stage 2: `gcr.io/distroless/static` atau `alpine` minimal — copy binary
+- [x] Verifikasi image build & run
 
 #### Task 1.2.2: docker-compose.yml Lengkap
 

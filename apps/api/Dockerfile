@@ -1,23 +1,47 @@
+# =============================================================================
+# Stage 1: Build
+# =============================================================================
 FROM golang:1.25.2-alpine AS builder
 
-WORKDIR /app
+# Install ca-certificates for HTTPS and tzdata for timezone support
+RUN apk add --no-cache ca-certificates tzdata
 
-COPY go.mod go.sum ./
-RUN go mod download
+WORKDIR /build
 
-COPY . .
+# Copy go.work and all module files first for layer caching
+COPY go.work go.work.sum ./
+COPY apps/api/go.mod apps/api/go.sum ./apps/api/
+COPY pkg/go.mod pkg/go.sum ./pkg/
 
-RUN CGO_ENABLED=0 GOOS=linu go build -ldflags="-w -s" -o main .
+# Download dependencies (cached unless go.mod/go.sum change)
+RUN cd apps/api && go mod download
+RUN cd pkg && go mod download
 
-FROM gcr.io/distroless/static-debian12:latest
+# Copy source code
+COPY apps/api/ ./apps/api/
+COPY pkg/ ./pkg/
 
-RUN adduser -D appuser
-USER appuser
+# Build the binary with optimizations
+RUN cd apps/api && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build \
+      -ldflags="-w -s" \
+      -trimpath \
+      -o /build/nexus-api \
+      ./cmd/server
 
-WORKDIR /app
+# =============================================================================
+# Stage 2: Runtime (distroless — minimal attack surface)
+# =============================================================================
+FROM gcr.io/distroless/static-debian12:nonroot
 
-COPY --from=builder /app/main .
+# Copy timezone data and CA certificates from builder
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy the compiled binary
+COPY --from=builder /build/nexus-api /nexus-api
 
 EXPOSE 8080
 
-CMD ["./main"]
+ENTRYPOINT ["/nexus-api"]
