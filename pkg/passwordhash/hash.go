@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
@@ -83,13 +82,11 @@ func Verify(password, encodedHash string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(decodedHash) > math.MaxUint32 {
+	if len(decodedHash) != int(keyLength) {
 		return false, ErrInvalidHash
 	}
-	//nolint:gosec // bounded check performed above
-	keyLen := uint32(len(decodedHash))
 
-	hashToVerify := argon2.IDKey([]byte(password), salt, iters, mem, threads, keyLen)
+	hashToVerify := argon2.IDKey([]byte(password), salt, iters, mem, threads, keyLength)
 
 	if subtle.ConstantTimeCompare(decodedHash, hashToVerify) == 1 {
 		return true, nil
