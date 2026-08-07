@@ -214,10 +214,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Buat `sqlc.yaml` di `apps/api`
-- [ ] Tulis query `CreateUser`, `FindUserByEmailOrUsername`, `CreateSession` (`.sql` file)
-- [ ] `sqlc generate`, verifikasi kode ter-generate di `internal/identity/infrastructure/`
-- [ ] Test generate query dengan koneksi database lokal
+- [x] Buat `sqlc.yaml` di `apps/api`
+- [x] Tulis query `CreateUser`, `FindUserByEmailOrUsername`, `CreateSession` (`.sql` file)
+- [x] `sqlc generate`, verifikasi kode ter-generate di `internal/identity/infrastructure/`
+- [x] Test generate query dengan koneksi database lokal
 
 ---
 
@@ -235,10 +235,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi `internal/identity/domain/user.go`
-- [ ] Value object `Email` (validasi format)
-- [ ] Value object `Username` (3-32 karakter, alfanumerik+underscore)
-- [ ] Unit test seluruh value object (kasus valid & invalid)
+- [x] Implementasi `internal/identity/domain/user.go`
+- [x] Value object `Email` (validasi format)
+- [x] Value object `Username` (3-32 karakter, alfanumerik+underscore)
+- [x] Unit test seluruh value object (kasus valid & invalid)
 
 #### Task 2.2.2: Argon2id Password Hashing
 
@@ -252,10 +252,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi `pkg/passwordhash` (generic, tidak bergantung domain — sesuai Playbook §3.2)
-- [ ] `Hash(password string) (string, error)` dengan parameter final
-- [ ] `Verify(password, encodedHash string) (bool, error)`
-- [ ] Unit test: hash-verify round-trip, verifikasi salah password gagal
+- [x] Implementasi `pkg/passwordhash` (generic, tidak bergantung domain — sesuai Playbook §3.2)
+- [x] `Hash(password string) (string, error)` dengan parameter final
+- [x] `Verify(password, encodedHash string) (bool, error)`
+- [x] Unit test: hash-verify round-trip, verifikasi salah password gagal
 
 #### Task 2.2.3: Repository Layer — UserRepository (sqlc adapter)
 

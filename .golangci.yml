@@ -19,6 +19,7 @@ linters-settings:
           - github.com/redis/go-redis/v9
           - github.com/jackc/pgx/v5
           - github.com/sqlc-dev/pqtype
+          - golang.org/x/crypto/argon2
 
 linters:
   disable-all: true
