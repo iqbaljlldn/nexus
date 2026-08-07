@@ -9,11 +9,14 @@ RUN corepack enable pnpm
 # Copy package.json to install dependencies
 COPY package.json ./
 
-# Install dependencies
-RUN pnpm install
+# Install dependencies (increase timeout for large binaries like biome)
+RUN pnpm config set fetch-timeout 600000 && pnpm config set fetch-retries 5 && pnpm install --ignore-scripts
 
 # Copy all files
 COPY . .
+
+# Run postinstall scripts now that files are copied
+RUN pnpm run postinstall
 
 # Build the Nuxt application
 RUN pnpm build
