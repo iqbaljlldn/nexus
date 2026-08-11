@@ -286,9 +286,9 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi `internal/identity/application/auth_service.go` — method `Register`
-- [ ] Mock `UserRepository` untuk unit test service
-- [ ] Unit test: register sukses, register email duplikat, register username duplikat
+- [x] Implementasi `internal/identity/application/auth_service.go` — method `Register`
+- [x] Mock `UserRepository` untuk unit test service
+- [x] Unit test: register sukses, register email duplikat, register username duplikat
 
 #### Task 2.2.5: HTTP Handler — `POST /api/v1/auth/register`
 
@@ -302,11 +302,11 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi `internal/identity/interface/http/register_handler.go`
-- [ ] Request DTO + validator tag
-- [ ] Mapping error domain → HTTP status code & error code (§16 Playbook, §0 API Spec)
-- [ ] Wire ke router Gin (`internal/platform/router.go`)
-- [ ] Test HTTP end-to-end (`httptest.NewServer` + test database)
+- [x] Implementasi `internal/identity/interface/http/register_handler.go`
+- [x] Request DTO + validator tag
+- [x] Mapping error domain → HTTP status code & error code (§16 Playbook, §0 API Spec)
+- [x] Wire ke router Gin (`internal/platform/router.go`)
+- [x] Test HTTP end-to-end (`httptest.NewServer` + test database)
 
 #### Task 2.2.6: Wiring dengan Google Wire
 
@@ -320,10 +320,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Buat `wire.go` dengan provider set (`NewUserRepository`, `NewAuthService`, `NewRegisterHandler`, dst.)
-- [ ] `wire` generate → `wire_gen.go`
-- [ ] `main.go` memanggil `InitializeApp()` hasil Wire
-- [ ] Verifikasi aplikasi start & endpoint register berfungsi end-to-end
+- [x] Buat `wire.go` dengan provider set (`NewUserRepository`, `NewAuthService`, `NewRegisterHandler`, dst.)
+- [x] `wire` generate → `wire_gen.go`
+- [x] `main.go` memanggil `InitializeApp()` hasil Wire
+- [x] Verifikasi aplikasi start & endpoint register berfungsi end-to-end
 
 ---
 
