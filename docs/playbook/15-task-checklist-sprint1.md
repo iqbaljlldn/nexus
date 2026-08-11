@@ -269,10 +269,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Implementasi `internal/identity/infrastructure/postgres_user_repository.go`
-- [ ] Method `Create(ctx, user) error` — tangani error unique constraint → `ErrDuplicateEmail`/`ErrDuplicateUsername`
-- [ ] Method `FindByEmailOrUsername(ctx, identifier) (*User, error)`
-- [ ] Integration test dengan test database (docker container terpisah/testcontainers)
+- [x] Implementasi `internal/identity/infrastructure/postgres_user_repository.go`
+- [x] Method `Create(ctx, user) error` — tangani error unique constraint → `ErrDuplicateEmail`/`ErrDuplicateUsername`
+- [x] Method `FindByEmailOrUsername(ctx, identifier) (*User, error)`
+- [x] Integration test dengan test database (docker container terpisah/testcontainers)
 
 #### Task 2.2.4: Service Layer — AuthService.Register
 

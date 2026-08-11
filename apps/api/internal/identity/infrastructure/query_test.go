@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/infrastructure"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sqlc-dev/pqtype"
@@ -31,10 +32,13 @@ func TestQueries(t *testing.T) {
 
 	// Test CreateUser
 	user, err := querier.CreateUser(ctx, infrastructure.CreateUserParams{
+		ID:           uuid.New(),
 		Email:        "test@example.com",
 		Username:     "testuser",
 		DisplayName:  "Test User",
 		PasswordHash: "hashed_password",
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
 	})
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
