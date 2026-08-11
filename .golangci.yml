@@ -20,6 +20,7 @@ linters-settings:
           - github.com/jackc/pgx/v5
           - github.com/sqlc-dev/pqtype
           - golang.org/x/crypto/argon2
+          - github.com/stretchr/testify
 
 linters:
   disable-all: true

@@ -10,6 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/identity"
+	application2 "github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/infrastructure"
+	http2 "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
 	"github.com/iqbaljlldn/nexus/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -25,15 +29,20 @@ import (
 func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
 	service := application.NewService(log, db, redisClient)
 	handler := http.NewHandler(service)
-	v := provideRouters(handler)
+	querier := identity.ProvideQuerier(db)
+	userRepository := infrastructure.NewPostgresUserRepository(querier)
+	authService := application2.NewAuthService(userRepository, log)
+	registerHandler := http2.NewRegisterHandler(authService)
+	v := provideRouters(handler, registerHandler)
 	engine := NewRouter(log, v)
 	return engine
 }
 
 // wire.go:
 
-func provideRouters(healthRouter router.ModuleRouter) []router.ModuleRouter {
+func provideRouters(healthRouter *http.Handler, identityRouter *http2.RegisterHandler) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
+		identityRouter,
 	}
 }

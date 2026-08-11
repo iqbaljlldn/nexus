@@ -11,18 +11,23 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health"
+	healthhttp "github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/identity"
+	identityhttp "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
 	"github.com/iqbaljlldn/nexus/pkg/router"
 )
 
-func provideRouters(healthRouter router.ModuleRouter) []router.ModuleRouter {
+func provideRouters(healthRouter *healthhttp.Handler, identityRouter *identityhttp.RegisterHandler) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
+		identityRouter,
 	}
 }
 
 func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
 	wire.Build(
 		health.ProviderSet,
+		identity.ProviderSet,
 		provideRouters,
 		NewRouter,
 	)
