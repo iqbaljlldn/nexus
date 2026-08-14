@@ -117,3 +117,9 @@ func (u *User) Ban() {
 	u.IsBanned = true
 	u.UpdatedAt = time.Now().UTC()
 }
+
+type DeviceInfo struct {
+	DeviceID  string `json:"device_id"`
+	IPAddress string `json:"ip_address"`
+	UserAgent string `json:"user_agent"`
+}

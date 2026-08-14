@@ -48,11 +48,8 @@ func TestQueries(t *testing.T) {
 		t.Errorf("Expected email test@example.com, got %s", user.Email)
 	}
 
-	// Test FindUserByEmailOrUsername
-	foundUser, err := querier.FindUserByEmailOrUsername(ctx, infrastructure.FindUserByEmailOrUsernameParams{
-		Email:    "test@example.com",
-		Username: "wronguser", // testing OR condition
-	})
+	// Test FindUserByEmail
+	foundUser, err := querier.FindUserByEmail(ctx, "test@example.com")
 	if err != nil {
 		t.Fatalf("Failed to find user: %v", err)
 	}

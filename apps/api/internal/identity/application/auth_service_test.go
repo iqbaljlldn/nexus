@@ -20,7 +20,15 @@ func (m *MockUserRepository) Create(ctx context.Context, user *domain.User) erro
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) FindByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error) {
+func (m *MockUserRepository) FindByEmail(ctx context.Context, identifier string) (*domain.User, error) {
+	args := m.Called(ctx, identifier)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
+func (m *MockUserRepository) FindByUsername(ctx context.Context, identifier string) (*domain.User, error) {
 	args := m.Called(ctx, identifier)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -33,8 +41,10 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := application.NewAuthService(mockRepo, logger)
+		service := application.NewAuthService(mockRepo, nil, nil, logger)
 
+		mockRepo.On("FindByEmail", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
+		mockRepo.On("FindByUsername", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.User")).Return(nil)
 
 		user, err := service.Register(context.Background(), "test@example.com", "testuser", "Test User", "password123")
@@ -50,7 +60,10 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("invalid email", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := application.NewAuthService(mockRepo, logger)
+		service := application.NewAuthService(mockRepo, nil, nil, logger)
+
+		mockRepo.On("FindByEmail", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
+		mockRepo.On("FindByUsername", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
 
 		user, err := service.Register(context.Background(), "invalid-email", "testuser", "Test User", "password123")
 
@@ -61,7 +74,10 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("invalid username", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := application.NewAuthService(mockRepo, logger)
+		service := application.NewAuthService(mockRepo, nil, nil, logger)
+
+		mockRepo.On("FindByEmail", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
+		mockRepo.On("FindByUsername", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
 
 		user, err := service.Register(context.Background(), "test@example.com", "in", "Test User", "password123") // username too short
 
@@ -72,9 +88,10 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("duplicate email", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := application.NewAuthService(mockRepo, logger)
+		service := application.NewAuthService(mockRepo, nil, nil, logger)
 
-		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.User")).Return(domain.ErrDuplicateEmail)
+		mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(&domain.User{}, nil)
+		mockRepo.On("FindByUsername", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
 
 		user, err := service.Register(context.Background(), "test@example.com", "testuser", "Test User", "password123")
 
@@ -85,9 +102,10 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("duplicate username", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := application.NewAuthService(mockRepo, logger)
+		service := application.NewAuthService(mockRepo, nil, nil, logger)
 
-		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.User")).Return(domain.ErrDuplicateUsername)
+		mockRepo.On("FindByEmail", mock.Anything, mock.Anything).Return((*domain.User)(nil), domain.ErrUserNotFound).Maybe()
+		mockRepo.On("FindByUsername", mock.Anything, "testuser").Return(&domain.User{}, nil)
 
 		user, err := service.Register(context.Background(), "test@example.com", "testuser", "Test User", "password123")
 

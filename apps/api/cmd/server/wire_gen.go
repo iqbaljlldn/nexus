@@ -31,16 +31,18 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 	handler := http.NewHandler(service)
 	querier := identity.ProvideQuerier(db)
 	userRepository := infrastructure.NewPostgresUserRepository(querier)
-	authService := application2.NewAuthService(userRepository, log)
-	registerHandler := http2.NewRegisterHandler(authService)
-	v := provideRouters(handler, registerHandler)
+	sessionRepository := infrastructure.NewPostgresSessionRepository(querier)
+	tokenManager := identity.ProvideTokenManager()
+	authService := application2.NewAuthService(userRepository, sessionRepository, tokenManager, log)
+	authHandler := http2.NewAuthHandler(authService)
+	v := provideRouters(handler, authHandler)
 	engine := NewRouter(log, v)
 	return engine
 }
 
 // wire.go:
 
-func provideRouters(healthRouter *http.Handler, identityRouter *http2.RegisterHandler) []router.ModuleRouter {
+func provideRouters(healthRouter *http.Handler, identityRouter *http2.AuthHandler) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
 		identityRouter,

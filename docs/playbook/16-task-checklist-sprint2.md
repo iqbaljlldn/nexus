@@ -34,9 +34,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tambah query sqlc `FindUserByEmailOrUsername` (bila belum ada dari Sprint 1, lengkapi; bila sudah, verifikasi ulang)
-- [ ] Implementasi logic deteksi tipe identifier di repository/service layer
-- [ ] Unit test: login via email, login via username, identifier tidak ditemukan
+- [x] Tambah query sqlc `FindUserByEmailOrUsername` (bila belum ada dari Sprint 1, lengkapi; bila sudah, verifikasi ulang)
+- [x] Implementasi logic deteksi tipe identifier di repository/service layer
+- [x] Unit test: login via email, login via username, identifier tidak ditemukan
 
 #### Task 2.4.2: Service Layer — AuthService.Login
 
@@ -49,9 +49,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `AuthService.Login(ctx, identifier, password, deviceInfo) (*TokenPair, error)`
-- [ ] Pastikan path "user tidak ditemukan" dan "password salah" mengembalikan sentinel error yang SAMA (`ErrInvalidCredentials`)
-- [ ] Unit test: login sukses, kedua skenario gagal menghasilkan error identik
+- [x] Implementasi `AuthService.Login(ctx, identifier, password, deviceInfo) (*TokenPair, error)`
+- [x] Pastikan path "user tidak ditemukan" dan "password salah" mengembalikan sentinel error yang SAMA (`ErrInvalidCredentials`)
+- [x] Unit test: login sukses, kedua skenario gagal menghasilkan error identik
 
 #### Task 2.4.3: HTTP Handler — `POST /api/v1/auth/login`
 
@@ -64,11 +64,11 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Request DTO `{ identifier, password }` + validasi
-- [ ] Set cookie refresh token (HttpOnly, Secure, SameSite=Strict) via `http.SetCookie`
-- [ ] Set cookie `csrf_token` (non-HttpOnly, readable JS)
-- [ ] Response body hanya berisi `access_token`, `expires_in`
-- [ ] Test HTTP: verifikasi header `Set-Cookie` sesuai flag yang benar, body tidak bocorkan refresh token
+- [x] Request DTO `{ identifier, password }` + validasi
+- [x] Set cookie refresh token (HttpOnly, Secure, SameSite=Strict) via `http.SetCookie`
+- [x] Set cookie `csrf_token` (non-HttpOnly, readable JS)
+- [x] Response body hanya berisi `access_token`, `expires_in`
+- [x] Test HTTP: verifikasi header `Set-Cookie` sesuai flag yang benar, body tidak bocorkan refresh token
 
 ---
 

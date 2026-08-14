@@ -3,25 +3,29 @@ package http
 import (
 	"errors"
 
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
 )
 
-type RegisterHandler struct {
+type AuthHandler struct {
 	authService *application.AuthService
 }
 
-func NewRegisterHandler(authService *application.AuthService) *RegisterHandler {
-	return &RegisterHandler{
+func NewAuthHandler(authService *application.AuthService) *AuthHandler {
+	return &AuthHandler{
 		authService: authService,
 	}
 }
 
-func (h *RegisterHandler) RegisterRoutes(router *gin.RouterGroup) {
+func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/auth/register", h.Register)
+	router.POST("/auth/login", h.Login)
 }
 
 type RegisterRequest struct {
@@ -38,7 +42,18 @@ type RegisterResponse struct {
 	DisplayName string `json:"display_name"`
 }
 
-func (h *RegisterHandler) Register(c *gin.Context) {
+type LoginRequest struct {
+	Identifier string             `json:"identifier" binding:"required"`
+	Password   string             `json:"password" binding:"required"`
+	DeviceInfo *domain.DeviceInfo `json:"device_info"`
+}
+
+type LoginResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"` // in seconds
+}
+
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "Invalid input format"}})
@@ -84,4 +99,52 @@ func (h *RegisterHandler) Register(c *gin.Context) {
 	}
 
 	httpresponse.Created(c, resp)
+}
+
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "Invalid input format"}})
+		return
+	}
+
+	tokenPair, _, err := h.authService.Login(c, req.Identifier, req.Password, req.DeviceInfo)
+	if err != nil {
+		var domainErr *pkgerrors.DomainError
+
+		if errors.Is(err, domain.ErrUserNotFound) {
+			domainErr = &pkgerrors.DomainError{
+				Code:    pkgerrors.CodeUserNotFound,
+				Message: "User not found",
+				Err:     err,
+			}
+		} else if errors.Is(err, domain.ErrInvalidCredentials) {
+			domainErr = &pkgerrors.DomainError{
+				Code:    pkgerrors.CodeInvalidCredentials,
+				Message: "Invalid credentials",
+				Err:     err,
+			}
+		} else {
+			_ = c.Error(err)
+			return
+		}
+
+		httpresponse.Error(c, domainErr)
+		return
+	}
+
+	// Set Refresh Token as HttpOnly Secure cookie
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie("refresh_token", tokenPair.RefreshToken, 86400, "/", "", true, true)
+
+	// Set CSRF Token as non-HttpOnly Secure cookie
+	csrfToken := uuid.NewString()
+	c.SetCookie("csrf_token", csrfToken, 86400, "/", "", true, false)
+
+	resp := LoginResponse{
+		AccessToken: tokenPair.AccessToken,
+		ExpiresIn:   900, // 15 minutes in seconds
+	}
+
+	httpresponse.OK(c, resp)
 }

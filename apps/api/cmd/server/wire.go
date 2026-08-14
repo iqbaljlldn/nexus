@@ -17,7 +17,7 @@ import (
 	"github.com/iqbaljlldn/nexus/pkg/router"
 )
 
-func provideRouters(healthRouter *healthhttp.Handler, identityRouter *identityhttp.RegisterHandler) []router.ModuleRouter {
+func provideRouters(healthRouter *healthhttp.Handler, identityRouter *identityhttp.AuthHandler) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
 		identityRouter,

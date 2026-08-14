@@ -99,19 +99,39 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const findUserByEmailOrUsername = `-- name: FindUserByEmailOrUsername :one
+const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, email, username, display_name, password_hash, avatar_url, is_suspended, is_banned, created_at, updated_at, deleted_at FROM users
-WHERE (email = $1 OR username = $2) AND deleted_at IS NULL
+WHERE email = $1 AND deleted_at IS NULL
 LIMIT 1
 `
 
-type FindUserByEmailOrUsernameParams struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, findUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.DisplayName,
+		&i.PasswordHash,
+		&i.AvatarUrl,
+		&i.IsSuspended,
+		&i.IsBanned,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
-func (q *Queries) FindUserByEmailOrUsername(ctx context.Context, arg FindUserByEmailOrUsernameParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, findUserByEmailOrUsername, arg.Email, arg.Username)
+const findUserByUsername = `-- name: FindUserByUsername :one
+SELECT id, email, username, display_name, password_hash, avatar_url, is_suspended, is_banned, created_at, updated_at, deleted_at FROM users
+WHERE username = $1 AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) FindUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, findUserByUsername, username)
 	var i User
 	err := row.Scan(
 		&i.ID,

@@ -45,13 +45,8 @@ func (r *PostgresUserRepository) Create(ctx context.Context, user *domain.User) 
 	return nil
 }
 
-func (r *PostgresUserRepository) FindByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error) {
-	params := FindUserByEmailOrUsernameParams{
-		Email:    identifier,
-		Username: identifier,
-	}
-
-	dbUser, err := r.q.FindUserByEmailOrUsername(ctx, params)
+func (r *PostgresUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+	dbUser, err := r.q.FindUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
@@ -59,15 +54,50 @@ func (r *PostgresUserRepository) FindByEmailOrUsername(ctx context.Context, iden
 		return nil, err
 	}
 
-	// Reconstruct Domain Entity
-	email, _ := domain.NewEmail(dbUser.Email)
-	username, _ := domain.NewUsername(dbUser.Username)
+	domainEmail, _ := domain.NewEmail(dbUser.Email)
+	domainUsername, _ := domain.NewUsername(dbUser.Username)
 	passwordHash, _ := domain.NewPasswordHash(dbUser.PasswordHash)
 
 	user := &domain.User{
 		ID:           dbUser.ID,
-		Email:        email,
-		Username:     username,
+		Email:        domainEmail,
+		Username:     domainUsername,
+		DisplayName:  dbUser.DisplayName,
+		PasswordHash: passwordHash,
+		IsSuspended:  dbUser.IsSuspended,
+		IsBanned:     dbUser.IsBanned,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+	}
+
+	if dbUser.AvatarUrl.Valid {
+		user.AvatarURL = &dbUser.AvatarUrl.String
+	}
+
+	if dbUser.DeletedAt.Valid {
+		user.DeletedAt = &dbUser.DeletedAt.Time
+	}
+
+	return user, nil
+}
+
+func (r *PostgresUserRepository) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
+	dbUser, err := r.q.FindUserByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	domainEmail, _ := domain.NewEmail(dbUser.Email)
+	domainUsername, _ := domain.NewUsername(dbUser.Username)
+	passwordHash, _ := domain.NewPasswordHash(dbUser.PasswordHash)
+
+	user := &domain.User{
+		ID:           dbUser.ID,
+		Email:        domainEmail,
+		Username:     domainUsername,
 		DisplayName:  dbUser.DisplayName,
 		PasswordHash: passwordHash,
 		IsSuspended:  dbUser.IsSuspended,

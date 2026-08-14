@@ -59,7 +59,7 @@ func TestPostgresUserRepository_CreateAndFind(t *testing.T) {
 	}
 
 	// 4. Test Find By Email
-	foundByEmail, err := repo.FindByEmailOrUsername(ctx, "repo@example.com")
+	foundByEmail, err := repo.FindByEmail(ctx, "repo@example.com")
 	if err != nil {
 		t.Fatalf("Failed to find user by email: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestPostgresUserRepository_CreateAndFind(t *testing.T) {
 	}
 
 	// 5. Test Find By Username
-	foundByUsername, err := repo.FindByEmailOrUsername(ctx, "repouser")
+	foundByUsername, err := repo.FindByUsername(ctx, "repouser")
 	if err != nil {
 		t.Fatalf("Failed to find user by username: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestPostgresUserRepository_CreateAndFind(t *testing.T) {
 	}
 
 	// 6. Test Find Non-Existent User
-	_, err = repo.FindByEmailOrUsername(ctx, "nonexistent@example.com")
+	_, err = repo.FindByEmail(ctx, "nonexistent@example.com")
 	if err != domain.ErrUserNotFound {
 		t.Errorf("Expected ErrUserNotFound, got %v", err)
 	}

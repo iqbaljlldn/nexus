@@ -6,9 +6,14 @@ INSERT INTO users (
 )
 RETURNING *;
 
--- name: FindUserByEmailOrUsername :one
+-- name: FindUserByEmail :one
 SELECT * FROM users
-WHERE (email = $1 OR username = $2) AND deleted_at IS NULL
+WHERE email = $1 AND deleted_at IS NULL
+LIMIT 1;
+
+-- name: FindUserByUsername :one
+SELECT * FROM users
+WHERE username = $1 AND deleted_at IS NULL
 LIMIT 1;
 
 -- name: CreateSession :one
