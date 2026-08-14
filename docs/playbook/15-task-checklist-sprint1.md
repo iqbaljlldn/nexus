@@ -341,10 +341,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Setup Zap logger di `pkg/logger`
-- [ ] Tambahkan log `Info` untuk register sukses (tanpa password)
-- [ ] Tambahkan log `Warn` untuk register gagal validasi/duplikat
-- [ ] Review manual: pastikan tidak ada password/hash ter-log
+- [x] Setup Zap logger di `pkg/logger`
+- [x] Tambahkan log `Info` untuk register sukses (tanpa password)
+- [x] Tambahkan log `Warn` untuk register gagal validasi/duplikat
+- [x] Review manual: pastikan tidak ada password/hash ter-log
 
 #### Task 2.3.2: Test Suite Lengkap Sprint 1
 
@@ -358,10 +358,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 **Subtask & Checklist**:
 
-- [ ] Jalankan seluruh test suite lokal, perbaiki test flaky bila ada
-- [ ] Cek coverage report (`go test -coverprofile`)
-- [ ] Pastikan CI `main` hijau penuh
-- [ ] Tag rilis internal `v0.1.0-sprint1` (opsional, untuk penanda milestone)
+- [x] Jalankan seluruh test suite lokal, perbaiki test flaky bila ada
+- [x] Cek coverage report (`go test -coverprofile`)
+- [x] Pastikan CI `main` hijau penuh
+- [x] Tag rilis internal `v0.1.0-sprint1` (opsional, untuk penanda milestone)
 
 ---
 
