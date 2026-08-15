@@ -1,8 +1,6 @@
 package identity
 
 import (
-	"os"
-
 	"github.com/google/wire"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
@@ -18,11 +16,7 @@ func ProvideQuerier(pool *pgxpool.Pool) infrastructure.Querier {
 }
 
 func ProvideTokenManager() domain.TokenManager {
-	secret := os.Getenv("NEXUS_API_JWT_SECRET")
-	if secret == "" {
-		secret = "default_secret_for_local_dev" // Fallback for local testing
-	}
-	return infrastructure.NewJWTTokenManager(secret, "nexus-api", "nexus-client")
+	return infrastructure.NewJWTTokenManager("nexus-api", "nexus-client")
 }
 
 // ProviderSet is the Wire provider set for the identity module.

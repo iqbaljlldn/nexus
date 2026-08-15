@@ -1,24 +1,24 @@
 package infrastructure
 
 import (
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
+	jwtutil "github.com/iqbaljlldn/nexus/pkg/jwt"
 )
 
 type JWTTokenManager struct {
-	secretKey string
-	issuer    string
-	audience  string
+	issuer   string
+	audience string
 }
 
-func NewJWTTokenManager(secretKey, issuer, audience string) domain.TokenManager {
+func NewJWTTokenManager(issuer, audience string) domain.TokenManager {
 	return &JWTTokenManager{
-		secretKey: secretKey,
-		issuer:    issuer,
-		audience:  audience,
+		issuer:   issuer,
+		audience: audience,
 	}
 }
 
@@ -37,33 +37,21 @@ func (m *JWTTokenManager) GenerateToken(userID, tokenType string, duration time.
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-
-	signedToken, err := token.SignedString([]byte(m.secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return signedToken, nil
+	return jwtutil.Sign(payload)
 }
 
 func (m *JWTTokenManager) ParseToken(tokenStr, tokenType string) (*domain.Claims, error) {
 	claims := &domain.Claims{}
 
-	token, err := jwt.ParseWithClaims(
-		tokenStr,
-		claims,
-		func(token *jwt.Token) (interface{}, error) { return []byte(m.secretKey), nil },
-		jwt.WithValidMethods([]string{
-			jwt.SigningMethodHS256.Alg(),
-		}),
-		jwt.WithIssuer(m.issuer),
-		jwt.WithAudience(m.audience),
-	)
+	err := jwtutil.Verify(tokenStr, claims)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, jwtutil.ErrExpiredToken) {
+			return nil, domain.ErrInvalidToken // Or some specific expired error
+		}
+		return nil, domain.ErrInvalidToken
 	}
-	if !token.Valid || claims.TokenType != tokenType {
+
+	if claims.TokenType != tokenType || claims.Issuer != m.issuer || len(claims.Audience) == 0 || claims.Audience[0] != m.audience {
 		return nil, domain.ErrInvalidToken
 	}
 
