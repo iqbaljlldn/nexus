@@ -21,4 +21,5 @@ type UserRepository interface {
 
 type SessionRepository interface {
 	Create(ctx context.Context, session *Session) error
+	RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error
 }

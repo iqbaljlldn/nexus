@@ -23,3 +23,21 @@ INSERT INTO sessions (
     $1, $2, $3, $4, $5
 )
 RETURNING *;
+
+-- name: RevokeSession :one
+UPDATE sessions
+SET 
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    refresh_token_hash = $1
+    AND deleted_at IS NULL
+RETURNING *;
+
+-- name: FindSessionByTokenHash :one
+SELECT * FROM sessions
+WHERE
+    refresh_token_hash = $1
+    AND deleted_at IS NULL
+LIMIT 1;

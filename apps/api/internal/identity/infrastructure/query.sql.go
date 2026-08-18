@@ -99,6 +99,30 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const findSessionByTokenHash = `-- name: FindSessionByTokenHash :one
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at FROM sessions
+WHERE
+    refresh_token_hash = $1
+    AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) FindSessionByTokenHash(ctx context.Context, refreshTokenHash string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, findSessionByTokenHash, refreshTokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshTokenHash,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, email, username, display_name, password_hash, avatar_url, is_suspended, is_banned, created_at, updated_at, deleted_at FROM users
 WHERE email = $1 AND deleted_at IS NULL
@@ -145,6 +169,34 @@ func (q *Queries) FindUserByUsername(ctx context.Context, username string) (User
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const revokeSession = `-- name: RevokeSession :one
+UPDATE sessions
+SET 
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    refresh_token_hash = $1
+    AND deleted_at IS NULL
+RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+`
+
+func (q *Queries) RevokeSession(ctx context.Context, refreshTokenHash string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, revokeSession, refreshTokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshTokenHash,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

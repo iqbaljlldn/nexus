@@ -29,9 +29,10 @@ import (
 func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
 	service := application.NewService(log, db, redisClient)
 	handler := http.NewHandler(service)
-	querier := identity.ProvideQuerier(db)
+	sqlDB := identity.ProvideDB(db)
+	querier := identity.ProvideQuerier(sqlDB)
 	userRepository := infrastructure.NewPostgresUserRepository(querier)
-	sessionRepository := infrastructure.NewPostgresSessionRepository(querier)
+	sessionRepository := infrastructure.NewPostgresSessionRepository(sqlDB)
 	tokenManager := identity.ProvideTokenManager()
 	authService := application2.NewAuthService(userRepository, sessionRepository, tokenManager, log)
 	authHandler := http2.NewAuthHandler(authService)

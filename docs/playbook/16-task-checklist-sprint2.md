@@ -121,9 +121,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Query sqlc: `RevokeSession`, `CreateSession`, `FindSessionByTokenHash`
-- [ ] Implementasi `RotateRefreshToken` dalam satu DB transaction (`pgx.Tx`)
-- [ ] Integration test: rotate berhasil, token lama gagal dipakai setelah rotate
+- [x] Query sqlc: `RevokeSession`, `CreateSession`, `FindSessionByTokenHash`
+- [x] Implementasi `RotateRefreshToken` dalam satu DB transaction (`pgx.Tx`)
+- [x] Integration test: rotate berhasil, token lama gagal dipakai setelah rotate
 
 #### Task 2.6.2: Service & Handler — `POST /api/v1/auth/refresh` + CSRF
 

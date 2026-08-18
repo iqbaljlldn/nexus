@@ -11,11 +11,11 @@ import (
 )
 
 type PostgresSessionRepository struct {
-	q Querier
+	db *sql.DB
 }
 
-func NewPostgresSessionRepository(q Querier) domain.SessionRepository {
-	return &PostgresSessionRepository{q: q}
+func NewPostgresSessionRepository(db *sql.DB) domain.SessionRepository {
+	return &PostgresSessionRepository{db: db}
 }
 
 func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.Session) error {
@@ -47,7 +47,7 @@ func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.
 		ExpiresAt: session.ExpiresAt,
 	}
 
-	dbSession, err := r.q.CreateSession(ctx, params)
+	dbSession, err := New(r.db).CreateSession(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -57,4 +57,40 @@ func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.
 	// Note: Status is handled by DB default (e.g. 'active')
 
 	return nil
+}
+
+func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			err = rollbackErr
+		}
+	}()
+
+	q := New(tx)
+
+	// 1. Revoke the old session
+	oldSession, err := q.RevokeSession(ctx, oldTokenHash)
+	if err != nil {
+		return err
+	}
+
+	// Create the new session based on the old one
+	params := CreateSessionParams{
+		UserID:           oldSession.UserID,
+		RefreshTokenHash: newTokenHash,
+		UserAgent:        oldSession.UserAgent,
+		IpAddress:        oldSession.IpAddress,
+		ExpiresAt:        oldSession.ExpiresAt, // Keep original expiration or extend it? Usually refresh tokens keep same absolute expiration or extend. Let's just extend by 24h as a standard.
+	}
+
+	_, err = q.CreateSession(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
