@@ -85,9 +85,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `pkg/jwt/jwt.go` (`Sign`, `Verify`) memakai `NEXUS_API_JWT_SECRET` dari env (RULES.md §3 — jangan hardcode)
-- [ ] Claims minimal: `user_id`, `exp`, `iat`
-- [ ] Unit test: sign-verify round-trip, token expired, signature invalid
+- [x] Implementasi `pkg/jwt/jwt.go` (`Sign`, `Verify`) memakai `NEXUS_API_JWT_SECRET` dari env (RULES.md §3 — jangan hardcode)
+- [x] Claims minimal: `user_id`, `exp`, `iat`
+- [x] Unit test: sign-verify round-trip, token expired, signature invalid
 
 #### Task 2.5.2: Gin Auth Middleware
 
@@ -100,11 +100,11 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `internal/platform/middleware/auth.go`
-- [ ] Parse header `Authorization`, verify via `pkg/jwt`
-- [ ] Set `user_id` ke `gin.Context` (`c.Set("user_id", ...)`)
-- [ ] Response 401 dengan error code `UNAUTHORIZED` sesuai Error Code Catalog (API Spec §0)
-- [ ] Test: request tanpa header, header malformed, token expired, token valid
+- [x] Implementasi `internal/platform/middleware/auth.go`
+- [x] Parse header `Authorization`, verify via `pkg/jwt`
+- [x] Set `user_id` ke `gin.Context` (`c.Set("user_id", ...)`)
+- [x] Response 401 dengan error code `UNAUTHORIZED` sesuai Error Code Catalog (API Spec §0)
+- [x] Test: request tanpa header, header malformed, token expired, token valid
 
 ---
 
