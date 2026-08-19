@@ -284,11 +284,13 @@ Setiap domain dijelaskan: Responsibility, Aggregate Root, Entity, Value Object, 
 
 ### 2.12 Voice & Video
 
-- **Responsibility**: Integrasi LiveKit — pembuatan room, token generation, lifecycle room, sinkronisasi partisipan aktif.
-- **Aggregate Root**: `VoiceSession` / `VideoSession`
+> **Revisi (mengikuti desain Discord)**: Semula domain ini memodelkan "room" sebagai aggregate terpisah (`VoiceSession`) dengan lifecycle create/end mengikuti join-leave peserta pertama/terakhir. Ini tidak sesuai bagaimana Discord bekerja — **voice channel bersifat persisten dan ITU SENDIRI adalah room** (1:1 dengan `channel_id`), bukan entity yang dibuat-hapus dinamis. Model disederhanakan berikut.
+
+- **Responsibility**: Integrasi LiveKit — token generation, sinkronisasi partisipan aktif ke channel (room = `channel_id` itu sendiri, tidak ada entity room terpisah).
+- **Aggregate Root**: Tidak ada aggregate root sendiri untuk "room" — `Channel` (tipe voice/video, domain §2.5) yang berperan sebagai room secara implisit; `VoiceParticipant` adalah satu-satunya entity domain ini.
 - **Domain Event**: `voice.ParticipantJoined`, `voice.ParticipantLeft`, `video.ParticipantJoined`
-- **Repository**: `VoiceSessionRepository` (state ringan, sebagian besar state ada di LiveKit sendiri)
-- **Service**: `LiveKitTokenService`, `VoiceRoomLifecycleService`
+- **Repository**: `VoiceParticipantRepository` (state ringan — siapa terkoneksi ke channel mana; state media/koneksi sesungguhnya sepenuhnya dikelola LiveKit)
+- **Service**: `LiveKitTokenService` (generate token untuk `room = channel_id.String()`), `VoiceParticipantSyncService` (menyinkronkan webhook LiveKit ke `VoiceParticipantRepository` + broadcast)
 - **Dependency**: `channel_id` (tipe voice/video), `member_id`.
 
 ### 2.13 Admin

@@ -329,24 +329,21 @@ CREATE INDEX idx_notif_deliveries_recipient ON notification_deliveries (recipien
 
 ### 2.7 Voice/Video
 
-```sql
--- 20260101000060_create_voice_sessions_table.sql
-CREATE TABLE voice_sessions (
-    id             UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    channel_id     UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
-    livekit_room_name VARCHAR(128) NOT NULL,
-    started_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    ended_at       TIMESTAMPTZ
-);
+> **Revisi (mengikuti desain Discord)**: Draft awal memperkenalkan `voice_sessions` sebagai entity terpisah dengan lifecycle `started_at`/`ended_at`, dibuat/ditutup mengikuti orang pertama/terakhir join-leave. Ini kompleksitas yang tidak perlu — di Discord, **voice channel itu sendiri adalah room, bersifat persisten**, bukan sesuatu yang dibuat-hapus dinamis. Skema disederhanakan: `livekit_room_name` dipetakan langsung 1:1 dari `channel_id` (tidak perlu tabel terpisah), dan `voice_participants` cukup melacak siapa sedang terkoneksi ke channel mana.
 
+```sql
+-- 20260101000060_create_voice_participants_table.sql
 CREATE TABLE voice_participants (
-    voice_session_id  UUID NOT NULL REFERENCES voice_sessions(id) ON DELETE CASCADE,
-    user_id           UUID NOT NULL REFERENCES users(id),
-    joined_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    left_at           TIMESTAMPTZ,
-    PRIMARY KEY (voice_session_id, user_id, joined_at)
+    channel_id  UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL REFERENCES users(id),
+    joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    left_at     TIMESTAMPTZ,
+    PRIMARY KEY (channel_id, user_id, joined_at)
 );
+CREATE INDEX idx_voice_participants_active ON voice_participants (channel_id) WHERE left_at IS NULL;
 ```
+
+**Rationale**: `livekit_room_name` **tidak disimpan sebagai kolom** — dihitung langsung dari `channel_id.String()` di kode aplikasi (satu sumber kebenaran, tidak ada risiko room ganda/mapping yang tidak sinkron). "Room aktif atau tidak" cukup dijawab dengan query `EXISTS (SELECT 1 FROM voice_participants WHERE channel_id=$1 AND left_at IS NULL)` — tidak butuh kolom `ended_at` di entity terpisah untuk merepresentasikan itu.
 
 ### 2.8 Event Backbone (Outbox & Idempotency)
 

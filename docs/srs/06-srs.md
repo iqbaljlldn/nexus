@@ -38,6 +38,7 @@ Format: `FR-<Domain>-<Nomor>`. Setiap FR mencakup deskripsi, aturan bisnis, dan 
 | FR-AUTH-05 | Sistem harus mendukung "logout dari semua device" — merevoke seluruh refresh token milik user dalam satu operasi. |
 | FR-AUTH-06 | Sistem harus mencatat device/sesi aktif (user agent, IP, waktu login terakhir) dan menampilkannya ke user sebagai daftar yang dapat di-revoke individual. |
 | FR-AUTH-07 | Percobaan login gagal dibatasi rate limit progresif (lihat §3.5) untuk mitigasi brute-force; pesan error login gagal bersifat generik (tidak membedakan "email tidak ditemukan" vs "password salah"). |
+| FR-AUTH-08 | **(Amandemen)** Sistem harus menyediakan logout untuk **sesi saat ini saja** (device yang sedang dipakai), terpisah dari "logout dari semua device" (FR-AUTH-05). Sesi yang di-revoke ditentukan dari refresh token pada request itu sendiri (cookie), **bukan** dari `sessionId` yang harus diketahui client — ini celah yang sebelumnya terlewat di draft awal (hanya ada logout-all dan revoke-by-id). |
 
 ### 2.2 Workspace, Role, Permission, Category
 
@@ -276,6 +277,7 @@ Seluruh ambiguitas telah diresolusi dan target NFR diterima sebagai baseline pem
 ## Changelog
 
 | Versi | Tanggal | Perubahan |
+| 1.2.0 | Amandemen | Ditambahkan FR-AUTH-08: endpoint logout sesi-saat-ini-saja (terpisah dari logout-all), menutup celah desain yang ditemukan pasca-Sprint 2 |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen pertama Phase 2. Brevo dikonfirmasi sebagai SMTP/email provider (amandemen dari keputusan Anda). 2 ambiguitas ditemukan dan dilaporkan (§6) untuk konfirmasi sebelum HLD. |
 | 1.1.0 | Revisi | Ambiguitas diresolusi: (1) DM dikonfirmasi masuk scope, ditambahkan §2.9 FR-DM-01 s.d. FR-DM-05; (2) threshold device/lokasi baru dikonfirmasi heuristik IP sederhana tanpa GeoIP. |
