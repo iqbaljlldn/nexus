@@ -1,6 +1,6 @@
 module github.com/iqbaljlldn/nexus/pkg
 
-go 1.25.2
+go 1.25.13
 
 require (
 	github.com/gin-gonic/gin v1.12.0

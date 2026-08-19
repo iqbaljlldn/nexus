@@ -1,6 +1,6 @@
 module github.com/iqbaljlldn/nexus/apps/api
 
-go 1.25.2
+go 1.25.13
 
 require (
 	github.com/gin-gonic/gin v1.12.0
