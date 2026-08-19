@@ -41,3 +41,22 @@ WHERE
     refresh_token_hash = $1
     AND deleted_at IS NULL
 LIMIT 1;
+
+-- name: FindActiveSessionsByUserId :many
+SELECT *
+FROM sessions
+WHERE
+    user_id = $1
+    AND deleted_at IS NULL
+    AND status = 'active';
+
+-- name: RevokeAllSessionsByUserId :exec
+UPDATE sessions
+SET 
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    user_id = $1
+    AND deleted_at IS NULL
+    AND status = 'active';

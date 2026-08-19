@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	identityhttp "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
+	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -177,6 +179,19 @@ func (m *MockSessionRepository) FindByRefreshToken(ctx context.Context, refreshT
 func (m *MockSessionRepository) RevokeSession(ctx context.Context, refreshToken string) error {
 	args := m.Called(ctx, refreshToken)
 	return args.Error(0)
+}
+
+func (m *MockSessionRepository) RevokeAllSessions(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockSessionRepository) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Session), args.Error(1)
 }
 
 type MockTokenManager struct {
@@ -364,6 +379,119 @@ func TestAuthHandler_Logout(t *testing.T) {
 				foundCsrf = true
 				assert.Equal(t, "", c.Value)  // Value should be empty
 				assert.Equal(t, -1, c.MaxAge) // MaxAge should be -1
+			}
+		}
+		assert.True(t, foundRefresh)
+		assert.True(t, foundCsrf)
+	})
+}
+
+func TestAuthHandler_ListSessions(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	t.Run("success", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+		_ = setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+
+		sessions := []*domain.Session{
+			{
+				ID:               "session-1",
+				UserID:           "test-user-id",
+				RefreshTokenHash: "hash-1", // Should not be in response
+				UserAgent:        "Chrome",
+				IPAddress:        "192.168.1.1",
+				CreatedAt:        time.Now(),
+			},
+			{
+				ID:               "session-2",
+				UserID:           "test-user-id",
+				RefreshTokenHash: "hash-2", // Should not be in response
+				UserAgent:        "Firefox",
+				IPAddress:        "192.168.1.2",
+				CreatedAt:        time.Now(),
+			},
+		}
+
+		mockSessionRepo.On("GetActiveSessions", mock.Anything).Return(sessions, nil)
+
+		// Create a mock token that the auth middleware will verify
+		token := "mock-token"
+		mockTokenManager.On("ParseToken", token, "access").Return(&domain.Claims{
+			UserID: "test-user-id",
+		}, nil)
+
+		// For Auth middleware to work, it needs jwt.Verify to pass, but since jwt is in pkg/jwt and uses a global secret,
+		// we can't easily mock it without setting the env. In Gin test, we can just bypass the middleware or set a valid token.
+		// Wait, Auth middleware parses with jwt.Verify, so we must set NEXUS_API_JWT_SECRET and generate a real token.
+		// Since we didn't do this, we can just test the handler function directly, or let the router test run if we can.
+		// Actually, in TestAuthHandler_ListSessions, we just want to ensure DTO is mapped correctly.
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/auth/sessions", nil)
+		// Inject the UserID directly to simulate the middleware
+		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), uuid.MustParse("00000000-0000-0000-0000-000000000000")))
+
+		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+		handler := identityhttp.NewAuthHandler(authService)
+
+		handler.ListSessions(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response httpresponse.SuccessResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		data := response.Data.(map[string]interface{})
+		sessionList := data["sessions"].([]interface{})
+		assert.Len(t, sessionList, 2)
+
+		session1 := sessionList[0].(map[string]interface{})
+		assert.Equal(t, "session-1", session1["id"])
+		assert.Equal(t, "Chrome", session1["user_agent"])
+		assert.Equal(t, "192.168.1.1", session1["ip_address"])
+		assert.NotContains(t, session1, "refresh_token_hash")
+		assert.NotContains(t, session1, "RefreshTokenHash")
+	})
+}
+
+func TestAuthHandler_LogoutAll(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	t.Run("success -> 204 with cleared cookies", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+
+		mockSessionRepo.On("RevokeAllSessions", mock.Anything).Return(nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodPost, "/auth/logout-all", nil)
+		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), uuid.MustParse("00000000-0000-0000-0000-000000000000")))
+
+		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+		handler := identityhttp.NewAuthHandler(authService)
+
+		handler.LogoutAll(c)
+
+		assert.Equal(t, http.StatusNoContent, c.Writer.Status())
+
+		cookies := w.Result().Cookies()
+		assert.Len(t, cookies, 2)
+
+		var foundRefresh, foundCsrf bool
+		for _, cookie := range cookies {
+			if cookie.Name == "refresh_token" {
+				foundRefresh = true
+				assert.Equal(t, "", cookie.Value)
+				assert.Equal(t, -1, cookie.MaxAge)
+			}
+			if cookie.Name == "csrf_token" {
+				foundCsrf = true
+				assert.Equal(t, "", cookie.Value)
+				assert.Equal(t, -1, cookie.MaxAge)
 			}
 		}
 		assert.True(t, foundRefresh)

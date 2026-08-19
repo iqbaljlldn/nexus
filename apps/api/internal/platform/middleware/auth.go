@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
 	"github.com/iqbaljlldn/nexus/pkg/jwt"
@@ -79,6 +81,13 @@ func Auth() gin.HandlerFunc {
 
 		// Set user_id in the gin context
 		c.Set("user_id", claims.UserID)
+
+		// Set user_id in standard request context for repository access
+		userID, parseErr := uuid.Parse(claims.UserID)
+		if parseErr == nil {
+			c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), userID))
+		}
+
 		c.Next()
 	}
 }

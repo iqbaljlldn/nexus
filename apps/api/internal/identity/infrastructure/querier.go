@@ -6,14 +6,18 @@ package infrastructure
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	FindActiveSessionsByUserId(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	FindSessionByTokenHash(ctx context.Context, refreshTokenHash string) (Session, error)
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserByUsername(ctx context.Context, username string) (User, error)
+	RevokeAllSessionsByUserId(ctx context.Context, userID uuid.UUID) error
 	RevokeSession(ctx context.Context, refreshTokenHash string) (Session, error)
 }
 

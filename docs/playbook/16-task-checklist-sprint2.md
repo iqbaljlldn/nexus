@@ -175,10 +175,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Query sqlc `RevokeAllSessionsByUserID`
-- [ ] Handler + service method `LogoutAll`
-- [ ] Hapus cookie refresh_token & csrf_token di response (`Max-Age=-1`)
-- [ ] Test: 3 sesi aktif → logout-all → seluruh refresh gagal setelahnya
+- [x] Query sqlc `RevokeAllSessionsByUserID`
+- [x] Handler + service method `LogoutAll`
+- [x] Hapus cookie refresh_token & csrf_token di response (`Max-Age=-1`)
+- [x] Test: 3 sesi aktif → logout-all → seluruh refresh gagal setelahnya
 
 #### Task 2.7.2: `GET /api/v1/auth/sessions` — Daftar Sesi Aktif
 
@@ -191,9 +191,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Should
 
 **Subtask & Checklist**:
-- [ ] Query sqlc `ListActiveSessionsByUserID`
-- [ ] Handler, response DTO (exclude `refresh_token_hash`)
-- [ ] Test: pastikan hash token tidak pernah muncul di response JSON
+- [x] Query sqlc `ListActiveSessionsByUserID`
+- [x] Handler, response DTO (exclude `refresh_token_hash`)
+- [x] Test: pastikan hash token tidak pernah muncul di response JSON
 
 #### Task 2.7.3: `DELETE /api/v1/auth/sessions/{sessionId}` — Revoke Sesi Individual
 

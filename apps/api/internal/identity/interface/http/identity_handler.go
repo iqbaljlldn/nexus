@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/platform/middleware"
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
 )
@@ -28,6 +29,11 @@ func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/auth/login", h.Login)
 	router.POST("/auth/refresh", h.RefreshToken)
 	router.POST("/auth/logout", h.Logout)
+
+	protected := router.Group("/auth")
+	protected.Use(middleware.Auth())
+	protected.POST("/logout-all", h.LogoutAll)
+	protected.GET("/sessions", h.ListSessions)
 }
 
 type RegisterRequest struct {
@@ -58,6 +64,13 @@ type LoginResponse struct {
 type RefreshTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int    `json:"expires_in"` // in seconds
+}
+
+type SessionResponse struct {
+	ID        string `json:"id"`
+	UserAgent string `json:"user_agent"`
+	IPAddress string `json:"ip_address"`
+	CreatedAt string `json:"created_at"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -264,4 +277,39 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.SetCookie("csrf_token", "", -1, "/", "", true, false)
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *AuthHandler) LogoutAll(c *gin.Context) {
+	e := h.authService.LogoutAll(c.Request.Context())
+	if e != nil {
+		httpresponse.Error(c, e)
+		return
+	}
+
+	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+	c.SetCookie("csrf_token", "", -1, "/", "", true, false)
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AuthHandler) ListSessions(c *gin.Context) {
+	sessions, err := h.authService.GetActiveSessions(c.Request.Context())
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+
+	sessionResp := make([]SessionResponse, 0, len(sessions))
+	for _, s := range sessions {
+		sessionResp = append(sessionResp, SessionResponse{
+			ID:        s.ID,
+			UserAgent: s.UserAgent,
+			IPAddress: s.IPAddress,
+			CreatedAt: s.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+
+	httpresponse.OK(c, gin.H{
+		"sessions": sessionResp,
+	})
 }

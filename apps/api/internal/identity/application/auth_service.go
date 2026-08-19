@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
+	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	"github.com/iqbaljlldn/nexus/pkg/logger"
 	"github.com/iqbaljlldn/nexus/pkg/passwordhash"
 	"go.uber.org/zap"
@@ -220,4 +221,36 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	log.Info("user logged out successfully", zap.String("user_id", session.UserID), zap.String("session_id", session.ID))
 
 	return nil
+}
+
+func (s *AuthService) LogoutAll(ctx context.Context) error {
+	log := logger.FromContext(ctx, s.log)
+
+	if err := s.sessionRepo.RevokeAllSessions(ctx); err != nil {
+		log.Error("failed to revoke all sessions", zap.Error(err))
+		return fmt.Errorf("internal server error")
+	}
+
+	userID := ""
+	if id, err := contextutil.UserID(ctx); err == nil {
+		userID = id.String()
+	} else if ginCtxValue := ctx.Value("user_id"); ginCtxValue != nil {
+		userID, _ = ginCtxValue.(string)
+	}
+
+	log.Info("user logged out from all devices successfully", zap.String("user_id", userID))
+
+	return nil
+}
+
+func (s *AuthService) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+	log := logger.FromContext(ctx, s.log)
+
+	sessions, err := s.sessionRepo.GetActiveSessions(ctx)
+	if err != nil {
+		log.Error("failed to find sessions", zap.Error(err))
+		return nil, fmt.Errorf("internal server error")
+	}
+
+	return sessions, nil
 }

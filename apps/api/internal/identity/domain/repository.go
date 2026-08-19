@@ -25,4 +25,6 @@ type SessionRepository interface {
 	RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error
 	FindByRefreshToken(ctx context.Context, refreshToken string) (*Session, error)
 	RevokeSession(ctx context.Context, refreshToken string) error
+	RevokeAllSessions(ctx context.Context) error
+	GetActiveSessions(ctx context.Context) ([]*Session, error)
 }

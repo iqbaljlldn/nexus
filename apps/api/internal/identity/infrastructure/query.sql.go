@@ -99,6 +99,47 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const findActiveSessionsByUserId = `-- name: FindActiveSessionsByUserId :many
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+FROM sessions
+WHERE
+    user_id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+`
+
+func (q *Queries) FindActiveSessionsByUserId(ctx context.Context, userID uuid.UUID) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, findActiveSessionsByUserId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.RefreshTokenHash,
+			&i.UserAgent,
+			&i.IpAddress,
+			&i.Status,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findSessionByTokenHash = `-- name: FindSessionByTokenHash :one
 SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at FROM sessions
 WHERE
@@ -171,6 +212,23 @@ func (q *Queries) FindUserByUsername(ctx context.Context, username string) (User
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const revokeAllSessionsByUserId = `-- name: RevokeAllSessionsByUserId :exec
+UPDATE sessions
+SET 
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    user_id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+`
+
+func (q *Queries) RevokeAllSessionsByUserId(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeAllSessionsByUserId, userID)
+	return err
 }
 
 const revokeSession = `-- name: RevokeSession :one

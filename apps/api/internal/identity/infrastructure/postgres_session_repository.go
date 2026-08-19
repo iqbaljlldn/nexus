@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
+	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -138,4 +139,48 @@ func (r *PostgresSessionRepository) RevokeSession(ctx context.Context, refreshTo
 	}
 
 	return nil
+}
+
+func (r *PostgresSessionRepository) RevokeAllSessions(ctx context.Context) error {
+	userID, err := contextutil.UserID(ctx)
+	if err != nil {
+		return err
+	}
+	if err := New(r.db).RevokeAllSessionsByUserId(ctx, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresSessionRepository) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+	userID, err := contextutil.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dbSession, err := New(r.db).FindActiveSessionsByUserId(ctx, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	sessions := make([]*domain.Session, len(dbSession))
+	for i, session := range dbSession {
+		sessions[i] = &domain.Session{
+			ID:               session.ID.String(),
+			UserID:           session.UserID.String(),
+			RefreshTokenHash: session.RefreshTokenHash,
+			UserAgent:        session.UserAgent.String,
+			IPAddress:        session.IpAddress.IPNet.String(),
+			ExpiresAt:        session.ExpiresAt,
+			CreatedAt:        session.CreatedAt,
+		}
+	}
+
+	return sessions, nil
 }
