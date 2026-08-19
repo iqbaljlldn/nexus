@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Build
 # =============================================================================
-FROM golang:1.25.2-alpine AS builder
+FROM golang:1.25.13-alpine AS builder
 
 # Install ca-certificates for HTTPS and tzdata for timezone support
 RUN apk add --no-cache ca-certificates tzdata
