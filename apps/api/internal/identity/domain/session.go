@@ -12,20 +12,20 @@ type Session struct {
 	RefreshTokenHash string
 	UserAgent        string
 	IPAddress        string
-	IsRevoked        bool
-	CreatedAt        time.Time
+	Status           string
 	ExpiresAt        time.Time
+	CreatedAt        time.Time
 }
 
 func NewSession(userID, refreshTokenHash string, deviceInfo DeviceInfo, duration time.Duration) *Session {
 	now := time.Now().UTC()
 	return &Session{
-		ID:               uuid.NewString(),
+		ID:               uuid.New().String(),
 		UserID:           userID,
 		RefreshTokenHash: refreshTokenHash,
 		UserAgent:        deviceInfo.UserAgent,
 		IPAddress:        deviceInfo.IPAddress,
-		IsRevoked:        false,
+		Status:           "active",
 		CreatedAt:        now,
 		ExpiresAt:        now.Add(duration),
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
@@ -93,4 +94,48 @@ func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldT
 	}
 
 	return tx.Commit()
+}
+
+func (r *PostgresSessionRepository) FindByRefreshToken(ctx context.Context, refreshToken string) (*domain.Session, error) {
+	dbSession, err := New(r.db).FindSessionByTokenHash(ctx, refreshToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrInvalidToken
+		}
+		return nil, err
+	}
+
+	if dbSession.ExpiresAt.Before(time.Now()) {
+		return nil, domain.ErrInvalidToken
+	}
+
+	if !dbSession.UserAgent.Valid {
+		return nil, domain.ErrInvalidToken
+	}
+
+	if !dbSession.IpAddress.Valid {
+		return nil, domain.ErrInvalidToken
+	}
+
+	return &domain.Session{
+		ID:               dbSession.ID.String(),
+		UserID:           dbSession.UserID.String(),
+		RefreshTokenHash: dbSession.RefreshTokenHash,
+		UserAgent:        dbSession.UserAgent.String,
+		IPAddress:        dbSession.IpAddress.IPNet.String(),
+		ExpiresAt:        dbSession.ExpiresAt,
+		CreatedAt:        dbSession.CreatedAt,
+	}, nil
+}
+
+func (r *PostgresSessionRepository) RevokeSession(ctx context.Context, refreshToken string) error {
+	_, err := New(r.db).RevokeSession(ctx, refreshToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.ErrInvalidToken
+		}
+		return err
+	}
+
+	return nil
 }

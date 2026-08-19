@@ -112,6 +112,8 @@ func mapDomainCodeToStatus(code string) int {
 		return http.StatusNotFound
 	case pkgerrors.CodeUserUnauthorized, pkgerrors.CodeTokenExpired, pkgerrors.CodeTokenInvalid:
 		return http.StatusUnauthorized
+	case pkgerrors.CodeForbidden:
+		return http.StatusForbidden
 	case pkgerrors.CodeUserAlreadyExists, pkgerrors.CodeDuplicateRecord:
 		return http.StatusConflict
 	case pkgerrors.CodeInvalidCredentials, pkgerrors.CodeInvalidPassword, pkgerrors.CodeMissingRequiredField, pkgerrors.CodeInvalidFieldFormat:

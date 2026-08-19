@@ -8,6 +8,7 @@ const (
 	CodeInvalidCredentials   = "INVALID_CREDENTIALS" //nolint:gosec // not a credential
 	CodeMissingRequiredField = "MISSING_REQUIRED_FIELD"
 	CodeInvalidFieldFormat   = "INVALID_FIELD_FORMAT"
+	CodeForbidden            = "FORBIDDEN"
 
 	// Auth Errors
 	CodeTokenExpired    = "TOKEN_EXPIRED"

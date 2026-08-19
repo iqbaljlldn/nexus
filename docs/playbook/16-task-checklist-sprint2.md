@@ -1,4 +1,5 @@
 # Detailed Task Checklist — Sprint 2
+
 ## Project: Nexus — Discord-like Realtime Platform
 
 **Dokumen:** Phase 11 — Detailed Task Checklist (Sprint 2: Authentication Lengkap)
@@ -34,6 +35,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Tambah query sqlc `FindUserByEmailOrUsername` (bila belum ada dari Sprint 1, lengkapi; bila sudah, verifikasi ulang)
 - [x] Implementasi logic deteksi tipe identifier di repository/service layer
 - [x] Unit test: login via email, login via username, identifier tidak ditemukan
@@ -49,6 +51,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Implementasi `AuthService.Login(ctx, identifier, password, deviceInfo) (*TokenPair, error)`
 - [x] Pastikan path "user tidak ditemukan" dan "password salah" mengembalikan sentinel error yang SAMA (`ErrInvalidCredentials`)
 - [x] Unit test: login sukses, kedua skenario gagal menghasilkan error identik
@@ -64,6 +67,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Request DTO `{ identifier, password }` + validasi
 - [x] Set cookie refresh token (HttpOnly, Secure, SameSite=Strict) via `http.SetCookie`
 - [x] Set cookie `csrf_token` (non-HttpOnly, readable JS)
@@ -85,6 +89,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Implementasi `pkg/jwt/jwt.go` (`Sign`, `Verify`) memakai `NEXUS_API_JWT_SECRET` dari env (RULES.md §3 — jangan hardcode)
 - [x] Claims minimal: `user_id`, `exp`, `iat`
 - [x] Unit test: sign-verify round-trip, token expired, signature invalid
@@ -100,6 +105,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Implementasi `internal/platform/middleware/auth.go`
 - [x] Parse header `Authorization`, verify via `pkg/jwt`
 - [x] Set `user_id` ke `gin.Context` (`c.Set("user_id", ...)`)
@@ -121,6 +127,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [x] Query sqlc: `RevokeSession`, `CreateSession`, `FindSessionByTokenHash`
 - [x] Implementasi `RotateRefreshToken` dalam satu DB transaction (`pgx.Tx`)
 - [x] Integration test: rotate berhasil, token lama gagal dipakai setelah rotate
@@ -136,11 +143,12 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Middleware/handler validasi double-submit cookie (`X-CSRF-Token` header vs cookie `csrf_token`)
-- [ ] Baca refresh token dari cookie HttpOnly (bukan dari body)
-- [ ] Panggil `AuthService.RefreshToken` → `RotateRefreshToken`
-- [ ] Set cookie refresh token BARU + csrf_token BARU
-- [ ] Test: tanpa CSRF header → 403; CSRF cocok → 200 dengan cookie baru; refresh token expired/revoked → 401
+
+- [x] Middleware/handler validasi double-submit cookie (`X-CSRF-Token` header vs cookie `csrf_token`)
+- [x] Baca refresh token dari cookie HttpOnly (bukan dari body)
+- [x] Panggil `AuthService.RefreshToken` → `RotateRefreshToken`
+- [x] Set cookie refresh token BARU + csrf_token BARU
+- [x] Test: tanpa CSRF header → 403; CSRF cocok → 200 dengan cookie baru; refresh token expired/revoked → 401
 
 ---
 
@@ -157,6 +165,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [ ] Query sqlc `RevokeAllSessionsByUserID`
 - [ ] Handler + service method `LogoutAll`
 - [ ] Hapus cookie refresh_token & csrf_token di response (`Max-Age=-1`)
@@ -173,6 +182,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Should
 
 **Subtask & Checklist**:
+
 - [ ] Query sqlc `ListActiveSessionsByUserID`
 - [ ] Handler, response DTO (exclude `refresh_token_hash`)
 - [ ] Test: pastikan hash token tidak pernah muncul di response JSON
@@ -188,6 +198,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Should
 
 **Subtask & Checklist**:
+
 - [ ] Handler cek kepemilikan sesi sebelum revoke
 - [ ] Query sqlc `RevokeSessionByID`
 - [ ] Test: revoke sesi sendiri berhasil, revoke sesi orang lain ditolak
@@ -207,6 +218,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [ ] Tulis `rate_limit.lua` sesuai LLD §2.8
 - [ ] Implementasi `pkg/ratelimit/limiter.go` — load & eksekusi script via `EVAL`
 - [ ] Unit test: request ke-(limit+1) ditolak, request setelah window lewat diterima lagi
@@ -222,6 +234,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [ ] Middleware/interceptor rate limit khusus endpoint login, key berbasis identifier (bukan IP saja — SRS §3.5)
 - [ ] Implementasi lockout progresif (tracking jumlah lockout berturut sebelumnya, di Redis dengan key terpisah)
 - [ ] Header `Retry-After` pada response 429
@@ -242,6 +255,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
+
 - [ ] Tulis integration test skenario penuh (`internal/identity/interface/http/auth_flow_test.go`)
 - [ ] Jalankan 3x berturut-turut lokal untuk memastikan tidak flaky
 - [ ] Verifikasi CI hijau di branch PR
@@ -277,6 +291,6 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 
 ## Changelog
 
-| Versi | Tanggal | Perubahan |
-|---|---|---|
+| Versi | Tanggal    | Perubahan                                                                                                                      |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 1.0.0 | Draft awal | Dokumen Sprint 2: 6 Feature, 12 Task lengkap dengan AC/DoD/Dependency/Estimasi, menuntaskan Sprint Goal Authentication Lengkap |
