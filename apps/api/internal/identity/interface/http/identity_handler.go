@@ -27,6 +27,7 @@ func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/auth/register", h.Register)
 	router.POST("/auth/login", h.Login)
 	router.POST("/auth/refresh", h.RefreshToken)
+	router.POST("/auth/logout", h.Logout)
 }
 
 type RegisterRequest struct {
@@ -219,4 +220,48 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	httpresponse.OK(c, resp)
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	csrfCookie, err := c.Cookie("csrf_token")
+	if err != nil {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeForbidden,
+			Message: "CSRF token missing",
+			Err:     err,
+		})
+		return
+	}
+
+	csrfHeader := c.GetHeader("X-CSRF-Token")
+	if csrfHeader == "" || csrfHeader != csrfCookie {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeForbidden,
+			Message: "Invalid CSRF token",
+			Err:     errors.New("csrf token mismatch"),
+		})
+		return
+	}
+
+	refreshToken, _ := c.Cookie("refresh_token")
+	if refreshToken == "" {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeInvalidFieldFormat,
+			Message: "Refresh token not found",
+			Err:     errors.New("refresh token not found"),
+		})
+		return
+	}
+
+	err = h.authService.Logout(c.Request.Context(), refreshToken)
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+
+	// Delete cookies
+	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+	c.SetCookie("csrf_token", "", -1, "/", "", true, false)
+
+	c.Status(http.StatusNoContent)
 }

@@ -65,7 +65,7 @@
 - **Response 200**: access & refresh token baru (rotated — FR-AUTH-04); refresh token lama otomatis `revoked`.
 - **Error**: `401 UNAUTHORIZED` (refresh token invalid/revoked/expired).
 
-### `POST /api/v1/auth/logout` *(amandemen — FR-AUTH-08)*
+### `POST /api/v1/auth/logout` *(amandemen — FR-AUTH-08, diimplementasikan)*
 
 - **Auth**: Wajib
 - **Request**: kosong — refresh token diambil dari cookie HttpOnly pada request ini sendiri (bukan dari body/path), sehingga client tidak perlu tahu/menyimpan `sessionId`.

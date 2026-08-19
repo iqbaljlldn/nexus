@@ -34,9 +34,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tambah query sqlc `FindUserByEmailOrUsername` (bila belum ada dari Sprint 1, lengkapi; bila sudah, verifikasi ulang)
-- [ ] Implementasi logic deteksi tipe identifier di repository/service layer
-- [ ] Unit test: login via email, login via username, identifier tidak ditemukan
+- [x] Tambah query sqlc `FindUserByEmailOrUsername` (bila belum ada dari Sprint 1, lengkapi; bila sudah, verifikasi ulang)
+- [x] Implementasi logic deteksi tipe identifier di repository/service layer
+- [x] Unit test: login via email, login via username, identifier tidak ditemukan
 
 #### Task 2.4.2: Service Layer — AuthService.Login
 
@@ -49,9 +49,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `AuthService.Login(ctx, identifier, password, deviceInfo) (*TokenPair, error)`
-- [ ] Pastikan path "user tidak ditemukan" dan "password salah" mengembalikan sentinel error yang SAMA (`ErrInvalidCredentials`)
-- [ ] Unit test: login sukses, kedua skenario gagal menghasilkan error identik
+- [x] Implementasi `AuthService.Login(ctx, identifier, password, deviceInfo) (*TokenPair, error)`
+- [x] Pastikan path "user tidak ditemukan" dan "password salah" mengembalikan sentinel error yang SAMA (`ErrInvalidCredentials`)
+- [x] Unit test: login sukses, kedua skenario gagal menghasilkan error identik
 
 #### Task 2.4.3: HTTP Handler — `POST /api/v1/auth/login`
 
@@ -64,11 +64,11 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Request DTO `{ identifier, password }` + validasi
-- [ ] Set cookie refresh token (HttpOnly, Secure, SameSite=Strict) via `http.SetCookie`
-- [ ] Set cookie `csrf_token` (non-HttpOnly, readable JS)
-- [ ] Response body hanya berisi `access_token`, `expires_in`
-- [ ] Test HTTP: verifikasi header `Set-Cookie` sesuai flag yang benar, body tidak bocorkan refresh token
+- [x] Request DTO `{ identifier, password }` + validasi
+- [x] Set cookie refresh token (HttpOnly, Secure, SameSite=Strict) via `http.SetCookie`
+- [x] Set cookie `csrf_token` (non-HttpOnly, readable JS)
+- [x] Response body hanya berisi `access_token`, `expires_in`
+- [x] Test HTTP: verifikasi header `Set-Cookie` sesuai flag yang benar, body tidak bocorkan refresh token
 
 ---
 
@@ -85,9 +85,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `pkg/jwt/jwt.go` (`Sign`, `Verify`) memakai `NEXUS_API_JWT_SECRET` dari env (RULES.md §3 — jangan hardcode)
-- [ ] Claims minimal: `user_id`, `exp`, `iat`
-- [ ] Unit test: sign-verify round-trip, token expired, signature invalid
+- [x] Implementasi `pkg/jwt/jwt.go` (`Sign`, `Verify`) memakai `NEXUS_API_JWT_SECRET` dari env (RULES.md §3 — jangan hardcode)
+- [x] Claims minimal: `user_id`, `exp`, `iat`
+- [x] Unit test: sign-verify round-trip, token expired, signature invalid
 
 #### Task 2.5.2: Gin Auth Middleware
 
@@ -100,11 +100,11 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `internal/platform/middleware/auth.go`
-- [ ] Parse header `Authorization`, verify via `pkg/jwt`
-- [ ] Set `user_id` ke `gin.Context` (`c.Set("user_id", ...)`)
-- [ ] Response 401 dengan error code `UNAUTHORIZED` sesuai Error Code Catalog (API Spec §0)
-- [ ] Test: request tanpa header, header malformed, token expired, token valid
+- [x] Implementasi `internal/platform/middleware/auth.go`
+- [x] Parse header `Authorization`, verify via `pkg/jwt`
+- [x] Set `user_id` ke `gin.Context` (`c.Set("user_id", ...)`)
+- [x] Response 401 dengan error code `UNAUTHORIZED` sesuai Error Code Catalog (API Spec §0)
+- [x] Test: request tanpa header, header malformed, token expired, token valid
 
 ---
 
@@ -121,9 +121,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Query sqlc: `RevokeSession`, `CreateSession`, `FindSessionByTokenHash`
-- [ ] Implementasi `RotateRefreshToken` dalam satu DB transaction (`pgx.Tx`)
-- [ ] Integration test: rotate berhasil, token lama gagal dipakai setelah rotate
+- [x] Query sqlc: `RevokeSession`, `CreateSession`, `FindSessionByTokenHash`
+- [x] Implementasi `RotateRefreshToken` dalam satu DB transaction (`pgx.Tx`)
+- [x] Integration test: rotate berhasil, token lama gagal dipakai setelah rotate
 
 #### Task 2.6.2: Service & Handler — `POST /api/v1/auth/refresh` + CSRF
 
@@ -136,11 +136,11 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Middleware/handler validasi double-submit cookie (`X-CSRF-Token` header vs cookie `csrf_token`)
-- [ ] Baca refresh token dari cookie HttpOnly (bukan dari body)
-- [ ] Panggil `AuthService.RefreshToken` → `RotateRefreshToken`
-- [ ] Set cookie refresh token BARU + csrf_token BARU
-- [ ] Test: tanpa CSRF header → 403; CSRF cocok → 200 dengan cookie baru; refresh token expired/revoked → 401
+- [x] Middleware/handler validasi double-submit cookie (`X-CSRF-Token` header vs cookie `csrf_token`)
+- [x] Baca refresh token dari cookie HttpOnly (bukan dari body)
+- [x] Panggil `AuthService.RefreshToken` → `RotateRefreshToken`
+- [x] Set cookie refresh token BARU + csrf_token BARU
+- [x] Test: tanpa CSRF header → 403; CSRF cocok → 200 dengan cookie baru; refresh token expired/revoked → 401
 
 ---
 
@@ -159,10 +159,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Handler `POST /auth/logout` — baca refresh token dari cookie, cari sesi terkait via `FindSessionByTokenHash`, revoke sesi tersebut saja
-- [ ] Hapus cookie refresh_token & csrf_token di response
-- [ ] Test: 2 device login, logout salah satu, verifikasi device lain tidak terpengaruh
-- [ ] Update dokumentasi: tandai `10-api-specification.md` amandemen ini sudah diimplementasikan
+- [x] Handler `POST /auth/logout` — baca refresh token dari cookie, cari sesi terkait via `FindSessionByTokenHash`, revoke sesi tersebut saja
+- [x] Hapus cookie refresh_token & csrf_token di response
+- [x] Test: 2 device login, logout salah satu, verifikasi device lain tidak terpengaruh
+- [x] Update dokumentasi: tandai `10-api-specification.md` amandemen ini sudah diimplementasikan
 
 #### Task 2.7.1: `POST /api/v1/auth/logout-all`
 

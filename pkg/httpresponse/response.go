@@ -50,6 +50,10 @@ func SuccessWithMeta(c *gin.Context, statusCode int, data interface{}, meta inte
 	})
 }
 
+func NoContent(c *gin.Context) {
+	c.Status(http.StatusNoContent)
+}
+
 // Error Handler
 func Error(c *gin.Context, err error) {
 	var domainErr *pkgerrors.DomainError

@@ -303,3 +303,70 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		assert.Equal(t, "TOKEN_INVALID", response.Error.Code)
 	})
 }
+
+func TestAuthHandler_Logout(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	t.Run("without CSRF header -> 403", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+
+		req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-cookie"})
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("with matching CSRF header -> 204 with cleared cookies", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+
+		validSession := &domain.Session{
+			UserID:           "test-user-id",
+			RefreshTokenHash: "old-hash",
+			IPAddress:        "127.0.0.1",
+			UserAgent:        "TestBrowser",
+			ExpiresAt:        time.Now().Add(1 * time.Hour),
+		}
+
+		mockSessionRepo.On("FindByRefreshToken", mock.Anything, "valid-refresh-token").Return(validSession, nil)
+		mockSessionRepo.On("RevokeSession", mock.Anything, "valid-refresh-token").Return(nil)
+
+		req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
+		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})
+		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"})
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		// Check cookies are cleared
+		cookies := w.Result().Cookies()
+		assert.Len(t, cookies, 2) // refresh_token and csrf_token
+
+		var foundRefresh, foundCsrf bool
+		for _, c := range cookies {
+			if c.Name == "refresh_token" {
+				foundRefresh = true
+				assert.Equal(t, "", c.Value)  // Value should be empty
+				assert.Equal(t, -1, c.MaxAge) // MaxAge should be -1
+			}
+			if c.Name == "csrf_token" {
+				foundCsrf = true
+				assert.Equal(t, "", c.Value)  // Value should be empty
+				assert.Equal(t, -1, c.MaxAge) // MaxAge should be -1
+			}
+		}
+		assert.True(t, foundRefresh)
+		assert.True(t, foundCsrf)
+	})
+}

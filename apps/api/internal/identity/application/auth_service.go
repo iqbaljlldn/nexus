@@ -196,3 +196,28 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*d
 		RefreshToken: newRefreshToken,
 	}, nil
 }
+
+func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
+	log := logger.FromContext(ctx, s.log)
+
+	session, err := s.sessionRepo.FindByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		log.Warn("refresh token not found", zap.Error(err))
+		return domain.ErrInvalidToken
+	}
+
+	if session.ExpiresAt.Before(time.Now()) {
+		log.Warn("refresh token expired", zap.Error(err))
+		return domain.ErrExpiredToken
+	}
+
+	err = s.sessionRepo.RevokeSession(ctx, refreshToken)
+	if err != nil {
+		log.Error("failed to revoke session", zap.Error(err), zap.String("user_id", session.UserID))
+		return fmt.Errorf("internal server error")
+	}
+
+	log.Info("user logged out successfully", zap.String("user_id", session.UserID), zap.String("session_id", session.ID))
+
+	return nil
+}
