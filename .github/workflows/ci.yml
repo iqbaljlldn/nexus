@@ -95,16 +95,26 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Run gosec
+      - name: Run gosec (api)
         uses: securego/gosec@master
         with:
           args: ./apps/api/...
 
+      - name: Run gosec (pkg)
+        uses: securego/gosec@master
+        with:
+          args: ./pkg/...
+
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
-      - name: Run govulncheck
-        run: govulncheck ./apps/api/...
+      - name: Run govulncheck (api)
+        working-directory: apps/api
+        run: govulncheck ./...
+
+      - name: Run govulncheck (pkg)
+        working-directory: pkg
+        run: govulncheck ./...
 
   test:
     name: Test
@@ -117,8 +127,13 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Run Go Tests
-        run: go test ./apps/api/... -race -cover
+      - name: Run Go Tests (api)
+        working-directory: apps/api
+        run: go test ./... -race -cover
+
+      - name: Run Go Tests (pkg)
+        working-directory: pkg
+        run: go test ./... -race -cover
 
   build:
     name: Build
@@ -132,5 +147,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Build Go binaries
-        run: go build ./apps/api/...
+      - name: Build Go binaries (api)
+        working-directory: apps/api
+        run: go build ./...
+
+      - name: Build Go binaries (pkg)
+        working-directory: pkg
+        run: go build ./...

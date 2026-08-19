@@ -1,7 +1,7 @@
 version: "2"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - depguard
     - gosec
@@ -34,7 +34,6 @@ linters:
             - github.com/swaggo/swag
 
 formatters:
-  disable-all: true
   enable:
     - gofmt
 
