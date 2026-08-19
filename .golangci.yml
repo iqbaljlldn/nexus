@@ -1,27 +1,4 @@
-linters-settings:
-  depguard:
-    rules:
-      main:
-        files:
-          - "$all"
-        allow:
-          - $gostd
-          - github.com/iqbaljlldn/nexus
-          - go.uber.org/zap
-          - github.com/gin-gonic/gin
-          - github.com/google/wire
-          - github.com/swaggo/gin-swagger
-          - github.com/swaggo/files
-          - github.com/google/uuid
-          - gopkg.in/natefinch/lumberjack.v2
-          - go.opentelemetry.io
-          - github.com/prometheus
-          - github.com/redis/go-redis/v9
-          - github.com/jackc/pgx/v5
-          - github.com/sqlc-dev/pqtype
-          - golang.org/x/crypto/argon2
-          - github.com/stretchr/testify
-          - github.com/golang-jwt/jwt/v5
+version: "2"
 
 linters:
   disable-all: true
@@ -30,6 +7,35 @@ linters:
     - gosec
     - errcheck
     - govet
+  settings:
+    depguard:
+      rules:
+        main:
+          files:
+            - "$all"
+          allow:
+            - $gostd
+            - github.com/iqbaljlldn/nexus
+            - go.uber.org/zap
+            - github.com/gin-gonic/gin
+            - github.com/google/wire
+            - github.com/swaggo/gin-swagger
+            - github.com/swaggo/files
+            - github.com/google/uuid
+            - gopkg.in/natefinch/lumberjack.v2
+            - go.opentelemetry.io
+            - github.com/prometheus
+            - github.com/redis/go-redis/v9
+            - github.com/jackc/pgx/v5
+            - github.com/sqlc-dev/pqtype
+            - golang.org/x/crypto/argon2
+            - github.com/stretchr/testify
+            - github.com/golang-jwt/jwt/v5
+            - github.com/swaggo/swag
+
+formatters:
+  disable-all: true
+  enable:
     - gofmt
 
 run:

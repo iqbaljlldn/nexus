@@ -37,7 +37,11 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to connect to redis", zap.Error(err))
 	}
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Error("failed to close redis client", zap.Error(err))
+		}
+	}()
 
 	r := InitializeRouter(log, db, redisClient)
 

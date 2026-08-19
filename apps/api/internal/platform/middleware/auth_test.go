@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -34,8 +33,7 @@ func setupRouter() *gin.Engine {
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	os.Setenv("NEXUS_API_JWT_SECRET", "test_secret_key")
-	defer os.Unsetenv("NEXUS_API_JWT_SECRET")
+	t.Setenv("NEXUS_API_JWT_SECRET", "test_secret_key")
 
 	router := setupRouter()
 

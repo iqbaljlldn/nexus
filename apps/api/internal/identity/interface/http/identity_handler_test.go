@@ -87,7 +87,7 @@ func TestRegisterHandler_Register(t *testing.T) {
 			DisplayName: "Test User",
 			Password:    "password123",
 		}
-		jsonValue, _ := json.Marshal(reqBody)
+		jsonValue, _ := json.Marshal(reqBody) //nolint:gosec // G117: test-only, intentionally marshaling password field
 		req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(jsonValue))
 		w := httptest.NewRecorder()
 
@@ -116,7 +116,7 @@ func TestRegisterHandler_Register(t *testing.T) {
 			DisplayName: "",
 			Password:    "short",
 		}
-		jsonValue, _ := json.Marshal(reqBody)
+		jsonValue, _ := json.Marshal(reqBody) //nolint:gosec // G117: test-only, intentionally marshaling password field
 		req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(jsonValue))
 		w := httptest.NewRecorder()
 
@@ -138,7 +138,7 @@ func TestRegisterHandler_Register(t *testing.T) {
 			DisplayName: "Test User",
 			Password:    "password123",
 		}
-		jsonValue, _ := json.Marshal(reqBody)
+		jsonValue, _ := json.Marshal(reqBody) //nolint:gosec // G117: test-only, intentionally marshaling password field
 		req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(jsonValue))
 		w := httptest.NewRecorder()
 
@@ -221,7 +221,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-cookie"})
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-cookie"}) //nolint:gosec // G124: test-only cookie
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -255,8 +255,8 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})
-		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"})
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})       //nolint:gosec // G124: test-only cookie
+		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"}) //nolint:gosec // G124: test-only cookie
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -304,8 +304,8 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})
-		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "expired-token"})
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"}) //nolint:gosec // G124: test-only cookie
+		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "expired-token"}) //nolint:gosec // G124: test-only cookie
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -329,7 +329,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-cookie"})
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-cookie"}) //nolint:gosec // G124: test-only cookie
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -356,8 +356,8 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})
-		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"})
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "valid-csrf-token"})       //nolint:gosec // G124: test-only cookie
+		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"}) //nolint:gosec // G124: test-only cookie
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)

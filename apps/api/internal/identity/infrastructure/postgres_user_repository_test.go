@@ -21,7 +21,7 @@ func TestPostgresUserRepository_CreateAndFind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Clean up table before testing
 	_, _ = db.Exec("TRUNCATE TABLE users CASCADE")

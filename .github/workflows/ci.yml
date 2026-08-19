@@ -65,6 +65,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+          args: ./apps/api/... ./pkg/...
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

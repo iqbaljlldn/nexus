@@ -1,7 +1,6 @@
 package jwt_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -12,8 +11,7 @@ import (
 
 func TestJWT(t *testing.T) {
 	// Set test environment variable
-	os.Setenv("NEXUS_API_JWT_SECRET", "test_secret_key")
-	defer os.Unsetenv("NEXUS_API_JWT_SECRET")
+	t.Setenv("NEXUS_API_JWT_SECRET", "test_secret_key")
 
 	t.Run("round-trip success", func(t *testing.T) {
 		claims := jwt.BaseClaims{
