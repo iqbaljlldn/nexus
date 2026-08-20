@@ -60,3 +60,24 @@ WHERE
     user_id = $1
     AND deleted_at IS NULL
     AND status = 'active';
+
+-- name: RevokeSessionById :one
+UPDATE sessions
+SET
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+RETURNING *;
+
+-- name: FindSessionById :one
+SELECT *
+FROM sessions
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+LIMIT 1;

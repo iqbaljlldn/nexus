@@ -34,6 +34,7 @@ func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
 	protected.Use(middleware.Auth())
 	protected.POST("/logout-all", h.LogoutAll)
 	protected.GET("/sessions", h.ListSessions)
+	protected.POST("/sessions/:id/revoke", h.RevokeSessionById)
 }
 
 type RegisterRequest struct {
@@ -276,7 +277,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 	c.SetCookie("csrf_token", "", -1, "/", "", true, false)
 
-	c.Status(http.StatusNoContent)
+	httpresponse.NoContent(c)
 }
 
 func (h *AuthHandler) LogoutAll(c *gin.Context) {
@@ -309,7 +310,50 @@ func (h *AuthHandler) ListSessions(c *gin.Context) {
 		})
 	}
 
-	httpresponse.OK(c, gin.H{
-		"sessions": sessionResp,
-	})
+	httpresponse.OK(c, sessionResp)
+}
+
+func (h *AuthHandler) RevokeSessionById(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	if sessionID == "" {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeInvalidFieldFormat,
+			Message: "Session ID not found",
+			Err:     errors.New("session id not found"),
+		})
+		return
+	}
+
+	session, err := h.authService.RevokeSessionById(c.Request.Context(), sessionID)
+	if err != nil {
+		var domainErr *pkgerrors.DomainError
+
+		if errors.Is(err, domain.ErrInvalidToken) {
+			domainErr = &pkgerrors.DomainError{
+				Code:    pkgerrors.CodeTokenInvalid,
+				Message: "Invalid or expired token",
+				Err:     err,
+			}
+		} else if errors.Is(err, domain.ErrUnauthorizedSession) {
+			domainErr = &pkgerrors.DomainError{
+				Code:    pkgerrors.CodeForbidden,
+				Message: "Forbidden to revoke this session",
+				Err:     err,
+			}
+		} else {
+			_ = c.Error(err)
+			return
+		}
+
+		httpresponse.Error(c, domainErr)
+		return
+	}
+
+	if session.ID == sessionID {
+		c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+		c.SetCookie("csrf_token", "", -1, "/", "", true, false)
+	}
+
+	httpresponse.OK(c, session)
 }

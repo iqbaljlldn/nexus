@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	"github.com/iqbaljlldn/nexus/pkg/logger"
@@ -243,7 +244,7 @@ func (s *AuthService) LogoutAll(ctx context.Context) error {
 	return nil
 }
 
-func (s *AuthService) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+func (s *AuthService) GetActiveSessions(ctx context.Context) ([]domain.Session, error) {
 	log := logger.FromContext(ctx, s.log)
 
 	sessions, err := s.sessionRepo.GetActiveSessions(ctx)
@@ -253,4 +254,44 @@ func (s *AuthService) GetActiveSessions(ctx context.Context) ([]*domain.Session,
 	}
 
 	return sessions, nil
+}
+
+func (s *AuthService) RevokeSessionById(ctx context.Context, id string) (*domain.Session, error) {
+	log := logger.FromContext(ctx, s.log)
+
+	sessionID, err := uuid.Parse(id)
+	if err != nil {
+		log.Warn("failed to parse session id", zap.Error(err))
+		return nil, fmt.Errorf("invalid session id")
+	}
+
+	// Fetch session by ID
+	session, err := s.sessionRepo.FindById(ctx, sessionID)
+	if err != nil {
+		log.Warn("session not found", zap.Error(err), zap.String("session_id", id))
+		return nil, domain.ErrInvalidToken
+	}
+
+	// Verify ownership
+	userID := ""
+	if id, err := contextutil.UserID(ctx); err == nil {
+		userID = id.String()
+	} else if ginCtxValue := ctx.Value("user_id"); ginCtxValue != nil {
+		userID, _ = ginCtxValue.(string)
+	}
+
+	if session.UserID != userID {
+		log.Warn("unauthorized session revocation attempt", zap.String("session_id", id), zap.String("user_id", userID))
+		return nil, domain.ErrUnauthorizedSession
+	}
+
+	session, err = s.sessionRepo.RevokeSessionById(ctx, sessionID)
+	if err != nil {
+		log.Error("failed to revoke session", zap.Error(err), zap.String("session_id", id))
+		return nil, fmt.Errorf("failed to revoke session")
+	}
+
+	log.Info("session revoked successfully", zap.String("session_id", id))
+
+	return session, nil
 }

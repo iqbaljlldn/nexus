@@ -206,9 +206,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Should
 
 **Subtask & Checklist**:
-- [ ] Handler cek kepemilikan sesi sebelum revoke
-- [ ] Query sqlc `RevokeSessionByID`
-- [ ] Test: revoke sesi sendiri berhasil, revoke sesi orang lain ditolak
+- [x] Handler cek kepemilikan sesi sebelum revoke
+- [x] Query sqlc `RevokeSessionByID` (beserta `FindSessionById` untuk cek kepemilikan)
+- [x] Test: revoke sesi sendiri berhasil, revoke sesi orang lain ditolak
 
 ---
 

@@ -140,6 +140,32 @@ func (q *Queries) FindActiveSessionsByUserId(ctx context.Context, userID uuid.UU
 	return items, nil
 }
 
+const findSessionById = `-- name: FindSessionById :one
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+FROM sessions
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+LIMIT 1
+`
+
+func (q *Queries) FindSessionById(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRowContext(ctx, findSessionById, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshTokenHash,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const findSessionByTokenHash = `-- name: FindSessionByTokenHash :one
 SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at FROM sessions
 WHERE
@@ -245,6 +271,35 @@ RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expir
 
 func (q *Queries) RevokeSession(ctx context.Context, refreshTokenHash string) (Session, error) {
 	row := q.db.QueryRowContext(ctx, revokeSession, refreshTokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshTokenHash,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const revokeSessionById = `-- name: RevokeSessionById :one
+UPDATE sessions
+SET
+    deleted_at = now(),
+    updated_at = now(),
+    status = 'revoked'
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+    AND status = 'active'
+RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+`
+
+func (q *Queries) RevokeSessionById(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRowContext(ctx, revokeSessionById, id)
 	var i Session
 	err := row.Scan(
 		&i.ID,

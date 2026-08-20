@@ -186,12 +186,28 @@ func (m *MockSessionRepository) RevokeAllSessions(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func (m *MockSessionRepository) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+func (m *MockSessionRepository) GetActiveSessions(ctx context.Context) ([]domain.Session, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*domain.Session), args.Error(1)
+	return args.Get(0).([]domain.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) RevokeSessionById(ctx context.Context, id uuid.UUID) (*domain.Session, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) FindById(ctx context.Context, id uuid.UUID) (*domain.Session, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Session), args.Error(1)
 }
 
 type MockTokenManager struct {
@@ -395,7 +411,7 @@ func TestAuthHandler_ListSessions(t *testing.T) {
 		mockTokenManager := new(MockTokenManager)
 		_ = setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
-		sessions := []*domain.Session{
+		sessions := []domain.Session{
 			{
 				ID:               "session-1",
 				UserID:           "test-user-id",
@@ -496,5 +512,89 @@ func TestAuthHandler_LogoutAll(t *testing.T) {
 		}
 		assert.True(t, foundRefresh)
 		assert.True(t, foundCsrf)
+	})
+}
+
+func TestAuthHandler_RevokeSessionById(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	t.Run("success -> 200 with cleared cookies", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+
+		userID := uuid.MustParse("00000000-0000-0000-0000-000000000000")
+		sessionID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+
+		session := &domain.Session{
+			ID:     sessionID.String(),
+			UserID: userID.String(),
+		}
+
+		mockSessionRepo.On("FindById", mock.Anything, sessionID).Return(session, nil)
+		mockSessionRepo.On("RevokeSessionById", mock.Anything, sessionID).Return(session, nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodPost, "/auth/sessions/"+sessionID.String()+"/revoke", nil)
+		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), userID))
+		c.Params = gin.Params{{Key: "id", Value: sessionID.String()}}
+
+		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+		handler := identityhttp.NewAuthHandler(authService)
+
+		handler.RevokeSessionById(c)
+
+		assert.Equal(t, http.StatusOK, c.Writer.Status())
+
+		cookies := w.Result().Cookies()
+		assert.Len(t, cookies, 2)
+
+		var foundRefresh, foundCsrf bool
+		for _, cookie := range cookies {
+			if cookie.Name == "refresh_token" {
+				foundRefresh = true
+				assert.Equal(t, "", cookie.Value)
+				assert.Equal(t, -1, cookie.MaxAge)
+			}
+			if cookie.Name == "csrf_token" {
+				foundCsrf = true
+				assert.Equal(t, "", cookie.Value)
+				assert.Equal(t, -1, cookie.MaxAge)
+			}
+		}
+		assert.True(t, foundRefresh)
+		assert.True(t, foundCsrf)
+	})
+
+	t.Run("forbidden -> 403 when revoking others session", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockSessionRepo := new(MockSessionRepository)
+		mockTokenManager := new(MockTokenManager)
+
+		userID := uuid.MustParse("00000000-0000-0000-0000-000000000000")
+		otherUserID := "22222222-2222-2222-2222-222222222222"
+		sessionID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+
+		session := &domain.Session{
+			ID:     sessionID.String(),
+			UserID: otherUserID,
+		}
+
+		mockSessionRepo.On("FindById", mock.Anything, sessionID).Return(session, nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodPost, "/auth/sessions/"+sessionID.String()+"/revoke", nil)
+		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), userID))
+		c.Params = gin.Params{{Key: "id", Value: sessionID.String()}}
+
+		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
+		handler := identityhttp.NewAuthHandler(authService)
+
+		handler.RevokeSessionById(c)
+
+		assert.Equal(t, http.StatusForbidden, c.Writer.Status())
+		mockSessionRepo.AssertNotCalled(t, "RevokeSessionById")
 	})
 }

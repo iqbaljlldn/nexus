@@ -156,7 +156,7 @@ func (r *PostgresSessionRepository) RevokeAllSessions(ctx context.Context) error
 	return nil
 }
 
-func (r *PostgresSessionRepository) GetActiveSessions(ctx context.Context) ([]*domain.Session, error) {
+func (r *PostgresSessionRepository) GetActiveSessions(ctx context.Context) ([]domain.Session, error) {
 	userID, err := contextutil.UserID(ctx)
 	if err != nil {
 		return nil, err
@@ -169,9 +169,9 @@ func (r *PostgresSessionRepository) GetActiveSessions(ctx context.Context) ([]*d
 		return nil, err
 	}
 
-	sessions := make([]*domain.Session, len(dbSession))
+	sessions := make([]domain.Session, len(dbSession))
 	for i, session := range dbSession {
-		sessions[i] = &domain.Session{
+		sessions[i] = domain.Session{
 			ID:               session.ID.String(),
 			UserID:           session.UserID.String(),
 			RefreshTokenHash: session.RefreshTokenHash,
@@ -183,4 +183,48 @@ func (r *PostgresSessionRepository) GetActiveSessions(ctx context.Context) ([]*d
 	}
 
 	return sessions, nil
+}
+
+func (r *PostgresSessionRepository) RevokeSessionById(ctx context.Context, id uuid.UUID) (*domain.Session, error) {
+	dbSession, err := New(r.db).RevokeSessionById(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrInvalidToken
+		}
+		return nil, err
+	}
+
+	if !dbSession.UserAgent.Valid || !dbSession.IpAddress.Valid || dbSession.ExpiresAt.Before(time.Now()) {
+		return nil, domain.ErrInvalidToken
+	}
+
+	return &domain.Session{
+		ID:               dbSession.ID.String(),
+		UserID:           dbSession.UserID.String(),
+		RefreshTokenHash: dbSession.RefreshTokenHash,
+		UserAgent:        dbSession.UserAgent.String,
+		IPAddress:        dbSession.IpAddress.IPNet.String(),
+		ExpiresAt:        dbSession.ExpiresAt,
+		CreatedAt:        dbSession.CreatedAt,
+	}, nil
+}
+
+func (r *PostgresSessionRepository) FindById(ctx context.Context, id uuid.UUID) (*domain.Session, error) {
+	dbSession, err := New(r.db).FindSessionById(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrInvalidToken
+		}
+		return nil, err
+	}
+
+	return &domain.Session{
+		ID:               dbSession.ID.String(),
+		UserID:           dbSession.UserID.String(),
+		RefreshTokenHash: dbSession.RefreshTokenHash,
+		UserAgent:        dbSession.UserAgent.String,
+		IPAddress:        dbSession.IpAddress.IPNet.String(),
+		ExpiresAt:        dbSession.ExpiresAt,
+		CreatedAt:        dbSession.CreatedAt,
+	}, nil
 }
