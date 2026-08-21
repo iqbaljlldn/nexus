@@ -2,7 +2,7 @@ package http
 
 import (
 	"errors"
-
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,12 +15,14 @@ import (
 )
 
 type AuthHandler struct {
-	authService *application.AuthService
+	authService      *application.AuthService
+	loginRateLimiter *middleware.LoginRateLimiter
 }
 
-func NewAuthHandler(authService *application.AuthService) *AuthHandler {
+func NewAuthHandler(authService *application.AuthService, loginRateLimiter *middleware.LoginRateLimiter) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
+		authService:      authService,
+		loginRateLimiter: loginRateLimiter,
 	}
 }
 
@@ -129,8 +131,49 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Check if the identifier is currently locked out
+	if h.loginRateLimiter != nil {
+		result, err := h.loginRateLimiter.CheckLoginAllowed(c.Request.Context(), req.Identifier)
+		if err != nil {
+			_ = c.Error(fmt.Errorf("rate limit check failed: %w", err))
+			return
+		}
+		if !result.Allowed {
+			retryAfterSecs := int(result.RetryAfter.Seconds())
+			if retryAfterSecs < 1 {
+				retryAfterSecs = 1
+			}
+			c.Header("Retry-After", fmt.Sprintf("%d", retryAfterSecs))
+			httpresponse.Error(c, &pkgerrors.DomainError{
+				Code:    pkgerrors.CodeRateLimitExceeded,
+				Message: "Too many failed login attempts. Please try again later.",
+				Err:     errors.New("login rate limit exceeded"),
+			})
+			return
+		}
+	}
+
 	tokenPair, _, err := h.authService.Login(c, req.Identifier, req.Password, req.DeviceInfo)
 	if err != nil {
+		// Record failed attempt for rate limiting
+		if h.loginRateLimiter != nil && errors.Is(err, domain.ErrInvalidCredentials) {
+			result, rlErr := h.loginRateLimiter.RecordFailedAttempt(c.Request.Context(), req.Identifier)
+			if rlErr == nil && !result.Allowed {
+				// Lockout was just triggered by this attempt
+				retryAfterSecs := int(result.RetryAfter.Seconds())
+				if retryAfterSecs < 1 {
+					retryAfterSecs = 1
+				}
+				c.Header("Retry-After", fmt.Sprintf("%d", retryAfterSecs))
+				httpresponse.Error(c, &pkgerrors.DomainError{
+					Code:    pkgerrors.CodeRateLimitExceeded,
+					Message: "Too many failed login attempts. Please try again later.",
+					Err:     errors.New("login rate limit exceeded"),
+				})
+				return
+			}
+		}
+
 		var domainErr *pkgerrors.DomainError
 
 		if errors.Is(err, domain.ErrUserNotFound) {
@@ -152,6 +195,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 		httpresponse.Error(c, domainErr)
 		return
+	}
+
+	// Login succeeded — reset rate limit state for this identifier
+	if h.loginRateLimiter != nil {
+		_ = h.loginRateLimiter.ResetOnSuccess(c.Request.Context(), req.Identifier)
 	}
 
 	// Set Refresh Token as HttpOnly Secure cookie

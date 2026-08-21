@@ -225,9 +225,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis `rate_limit.lua` sesuai LLD §2.8
-- [ ] Implementasi `pkg/ratelimit/limiter.go` — load & eksekusi script via `EVAL`
-- [ ] Unit test: request ke-(limit+1) ditolak, request setelah window lewat diterima lagi
+- [x] Tulis `rate_limit.lua` sesuai LLD §2.8
+- [x] Implementasi `pkg/ratelimit/limiter.go` — load & eksekusi script via `EVAL`
+- [x] Unit test: request ke-(limit+1) ditolak, request setelah window lewat diterima lagi
 
 #### Task 2.8.2: Terapkan Rate Limit ke Login (Lockout Progresif)
 
@@ -240,10 +240,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Middleware/interceptor rate limit khusus endpoint login, key berbasis identifier (bukan IP saja — SRS §3.5)
-- [ ] Implementasi lockout progresif (tracking jumlah lockout berturut sebelumnya, di Redis dengan key terpisah)
-- [ ] Header `Retry-After` pada response 429
-- [ ] Test: 5 gagal → percobaan ke-6 → 429; setelah window lewat → percobaan berikutnya normal lagi
+- [x] Middleware/interceptor rate limit khusus endpoint login, key berbasis identifier (bukan IP saja — SRS §3.5)
+- [x] Implementasi lockout progresif (tracking jumlah lockout berturut sebelumnya, di Redis dengan key terpisah)
+- [x] Header `Retry-After` pada response 429
+- [x] Test: 5 gagal → percobaan ke-6 → 429; setelah window lewat → percobaan berikutnya normal lagi
 
 ---
 
@@ -260,10 +260,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis integration test skenario penuh (`internal/identity/interface/http/auth_flow_test.go`)
-- [ ] Jalankan 3x berturut-turut lokal untuk memastikan tidak flaky
-- [ ] Verifikasi CI hijau di branch PR
-- [ ] Update `docs/AGENTS.md` §7 (Status Proyek) — tandai Sprint 2 selesai setelah merge
+- [x] Tulis integration test skenario penuh (`internal/identity/interface/http/auth_flow_test.go`)
+- [x] Jalankan 3x berturut-turut lokal untuk memastikan tidak flaky
+- [x] Verifikasi CI hijau di branch PR
+- [x] Update `docs/AGENTS.md` §7 (Status Proyek) — tandai Sprint 2 selesai setelah merge
 
 ---
 

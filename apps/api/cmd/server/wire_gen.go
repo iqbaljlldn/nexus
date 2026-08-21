@@ -35,7 +35,9 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 	sessionRepository := infrastructure.NewPostgresSessionRepository(sqlDB)
 	tokenManager := identity.ProvideTokenManager()
 	authService := application2.NewAuthService(userRepository, sessionRepository, tokenManager, log)
-	authHandler := http2.NewAuthHandler(authService)
+	rateLimiter := identity.ProvideRateLimiter(redisClient)
+	loginRateLimiter := identity.ProvideLoginRateLimiter(rateLimiter, redisClient)
+	authHandler := http2.NewAuthHandler(authService, loginRateLimiter)
 	v := provideRouters(handler, authHandler)
 	engine := NewRouter(log, v)
 	return engine

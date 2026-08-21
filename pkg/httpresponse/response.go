@@ -122,6 +122,8 @@ func mapDomainCodeToStatus(code string) int {
 		return http.StatusConflict
 	case pkgerrors.CodeInvalidCredentials, pkgerrors.CodeInvalidPassword, pkgerrors.CodeMissingRequiredField, pkgerrors.CodeInvalidFieldFormat:
 		return http.StatusBadRequest
+	case pkgerrors.CodeRateLimitExceeded:
+		return http.StatusTooManyRequests
 	default:
 		// Default untung domain error adalah 400 Bad Request
 		return http.StatusBadRequest

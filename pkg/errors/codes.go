@@ -11,9 +11,10 @@ const (
 	CodeForbidden            = "FORBIDDEN"
 
 	// Auth Errors
-	CodeTokenExpired    = "TOKEN_EXPIRED"
-	CodeTokenInvalid    = "TOKEN_INVALID"
-	CodeInvalidPassword = "INVALID_PASSWORD"
+	CodeTokenExpired      = "TOKEN_EXPIRED"
+	CodeTokenInvalid      = "TOKEN_INVALID"
+	CodeInvalidPassword   = "INVALID_PASSWORD"
+	CodeRateLimitExceeded = "RATE_LIMIT_EXCEEDED" //nolint:gosec // not a credential
 
 	// Database Errors
 	CodeRecordNotFound          = "RECORD_NOT_FOUND"

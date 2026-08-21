@@ -9,13 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	identityhttp "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/platform/middleware"
 	"github.com/iqbaljlldn/nexus/pkg/contextutil"
+	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
+	"github.com/iqbaljlldn/nexus/pkg/ratelimit"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -64,7 +69,7 @@ func setupRouter(userRepo domain.UserRepository, sessionRepo domain.SessionRepos
 	})
 
 	authService := application.NewAuthService(userRepo, sessionRepo, tokenManager, logger)
-	handler := identityhttp.NewAuthHandler(authService)
+	handler := identityhttp.NewAuthHandler(authService, nil)
 	handler.RegisterRoutes(r.Group("/"))
 
 	return r
@@ -450,7 +455,7 @@ func TestAuthHandler_ListSessions(t *testing.T) {
 		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), uuid.MustParse("00000000-0000-0000-0000-000000000000")))
 
 		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
-		handler := identityhttp.NewAuthHandler(authService)
+		handler := identityhttp.NewAuthHandler(authService, nil)
 
 		handler.ListSessions(c)
 
@@ -459,8 +464,7 @@ func TestAuthHandler_ListSessions(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		data := response.Data.(map[string]interface{})
-		sessionList := data["sessions"].([]interface{})
+		sessionList := response.Data.([]interface{})
 		assert.Len(t, sessionList, 2)
 
 		session1 := sessionList[0].(map[string]interface{})
@@ -488,7 +492,7 @@ func TestAuthHandler_LogoutAll(t *testing.T) {
 		c.Request = c.Request.WithContext(contextutil.WithUserID(c.Request.Context(), uuid.MustParse("00000000-0000-0000-0000-000000000000")))
 
 		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
-		handler := identityhttp.NewAuthHandler(authService)
+		handler := identityhttp.NewAuthHandler(authService, nil)
 
 		handler.LogoutAll(c)
 
@@ -541,7 +545,7 @@ func TestAuthHandler_RevokeSessionById(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: sessionID.String()}}
 
 		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
-		handler := identityhttp.NewAuthHandler(authService)
+		handler := identityhttp.NewAuthHandler(authService, nil)
 
 		handler.RevokeSessionById(c)
 
@@ -590,11 +594,110 @@ func TestAuthHandler_RevokeSessionById(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: sessionID.String()}}
 
 		authService := application.NewAuthService(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
-		handler := identityhttp.NewAuthHandler(authService)
+		handler := identityhttp.NewAuthHandler(authService, nil)
 
 		handler.RevokeSessionById(c)
 
 		assert.Equal(t, http.StatusForbidden, c.Writer.Status())
 		mockSessionRepo.AssertNotCalled(t, "RevokeSessionById")
+	})
+}
+
+func setupRouterWithRateLimiter(userRepo domain.UserRepository, sessionRepo domain.SessionRepository, tokenManager domain.TokenManager, logger *zap.Logger, redisClient *redis.Client) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Next()
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last().Err
+			httpresponse.Error(c, err)
+		}
+	})
+
+	limiter := ratelimit.New(redisClient)
+	loginRateLimiter := middleware.NewLoginRateLimiter(limiter, redisClient)
+
+	authService := application.NewAuthService(userRepo, sessionRepo, tokenManager, logger)
+	handler := identityhttp.NewAuthHandler(authService, loginRateLimiter)
+	handler.RegisterRoutes(r.Group("/"))
+
+	return r
+}
+
+func TestAuthHandler_Login_RateLimiting(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	mr := miniredis.RunT(t)
+	redisClient := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = redisClient.Close() })
+
+	t.Run("progressive lockout after 5 failed attempts", func(t *testing.T) {
+		mr.FlushAll()
+		mockRepo := new(MockUserRepository)
+		router := setupRouterWithRateLimiter(mockRepo, nil, nil, logger, redisClient)
+
+		// Setup mock to always return invalid credentials
+		mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(&domain.User{
+			PasswordHash: "some-hash",
+		}, nil)
+
+		reqBody := identityhttp.LoginRequest{
+			Identifier: "test@example.com",
+			Password:   "wrongpassword",
+		}
+		jsonValue, _ := json.Marshal(reqBody) //nolint:gosec // G117: test-only
+
+		// 1 to 5 attempts should return 400 Invalid Credentials
+		for i := 0; i < 5; i++ {
+			req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusBadRequest, w.Code, "attempt %d", i+1)
+
+			var response httpresponse.ErrorResponse
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, pkgerrors.CodeInvalidCredentials, response.Error.Code)
+		}
+
+		// 6th attempt should return 429 Rate Limit Exceeded
+		req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, "300", w.Header().Get("Retry-After")) // First lockout is 5 mins (300 secs)
+
+		var response httpresponse.ErrorResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, pkgerrors.CodeRateLimitExceeded, response.Error.Code)
+
+		// Move forward in time by 5 minutes + 1 sec
+		mr.FastForward(5*time.Minute + time.Second)
+
+		// 7th attempt (after lockout expires) should be allowed to try, but fail auth again
+		req, _ = http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		// 8th attempt should immediately hit the 2nd lockout tier (15 minutes)
+		// because the sliding window counter reset, but the active lockout will trigger again
+		// Wait, the logic is: after lockout, the sliding window is cleared. So it takes another 5 attempts?
+		// No, let's verify how the middleware behaves. If they fail 5 MORE times, they get a 15 min lockout.
+		for i := 0; i < 4; i++ {
+			req, _ = http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+			w = httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		}
+
+		// Now it should hit the 2nd tier
+		req, _ = http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, "900", w.Header().Get("Retry-After")) // 15 mins (900 secs)
 	})
 }
