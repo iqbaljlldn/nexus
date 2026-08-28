@@ -11,3 +11,27 @@ sql:
         emit_prepared_queries: false
         emit_interface: true
         emit_exact_table_names: false
+
+  - schema: "../../migrations"
+    queries: "internal/workspace/infrastructure/query.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "infrastructure"
+        out: "internal/workspace/infrastructure"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+
+  - schema: "../../migrations"
+    queries: "internal/member/infrastructure/query.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "infrastructure"
+        out: "internal/member/infrastructure"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false

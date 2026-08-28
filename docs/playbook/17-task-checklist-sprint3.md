@@ -36,10 +36,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis migrasi `workspaces` (up & down)
-- [ ] Tulis migrasi `categories` (up & down)
-- [ ] Tulis migrasi `invites` (up & down)
-- [ ] Verifikasi FK constraint via test insert invalid
+- [x] Tulis migrasi `workspaces` (up & down)
+- [x] Tulis migrasi `categories` (up & down)
+- [x] Tulis migrasi `invites` (up & down)
+- [x] Verifikasi FK constraint via test insert invalid
 
 #### Task 3.1.2: Migrasi Tabel `members`
 
@@ -52,9 +52,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis migrasi `members` (up & down)
-- [ ] Verifikasi unique constraint via test insert duplikat
-- [ ] Verifikasi kedua index dengan `EXPLAIN` query dasar
+- [x] Tulis migrasi `members` (up & down)
+- [x] Verifikasi unique constraint via test insert duplikat
+- [x] Verifikasi kedua index dengan `EXPLAIN` query dasar
 
 #### Task 3.1.3: sqlc Setup — Domain Workspace & Member
 
@@ -67,10 +67,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Query: `CreateWorkspace`, `ListWorkspacesByUserID` (join via members, cursor-based — Playbook §17.2)
-- [ ] Query: `CreateCategory`, `CreateInvite`, `FindInviteByCode`, `IncrementInviteUseCount`
-- [ ] Query: `CreateMember`, `FindMemberByWorkspaceAndUser`, `ListMembersByWorkspace` (cursor-based, SRS FR-WS-08)
-- [ ] `sqlc generate`, verifikasi tanpa error
+- [x] Query: `CreateWorkspace`, `ListWorkspacesByUserID` (join via members, cursor-based — Playbook §17.2)
+- [x] Query: `CreateCategory`, `CreateInvite`, `FindInviteByCode`, `IncrementInviteUseCount`
+- [x] Query: `CreateMember`, `FindMemberByWorkspaceAndUser`, `ListMembersByWorkspace` (cursor-based, SRS FR-WS-08)
+- [x] `sqlc generate`, verifikasi tanpa error
 
 ---
 
