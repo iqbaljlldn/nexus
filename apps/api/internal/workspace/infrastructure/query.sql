@@ -3,13 +3,38 @@ INSERT INTO workspaces (owner_id, name, icon_url)
 VALUES ($1, $2, $3)
 RETURNING *;
 
--- name: ListWorkspacesByUserID :many
+-- name: ListWorkspacesByNewest :many
 SELECT w.* 
 FROM workspaces w
 JOIN members m ON w.id = m.workspace_id
-WHERE m.user_id = $1 AND (sqlc.narg('cursor')::uuid IS NULL OR w.id < sqlc.narg('cursor')::uuid)
-ORDER BY w.id DESC
+WHERE m.user_id = $1 
+  AND (sqlc.narg('search')::text IS NULL OR w.name ILIKE '%' || sqlc.narg('search')::text || '%')
+  AND (
+    sqlc.narg('cursor_created_at')::timestamptz IS NULL OR 
+    (w.created_at, w.id) < (sqlc.narg('cursor_created_at')::timestamptz, sqlc.narg('cursor_id')::uuid)
+  )
+ORDER BY w.created_at DESC, w.id DESC
 LIMIT $2;
+
+-- name: ListWorkspacesByNameAsc :many
+SELECT w.* 
+FROM workspaces w
+JOIN members m ON w.id = m.workspace_id
+WHERE m.user_id = $1 
+  AND (sqlc.narg('search')::text IS NULL OR w.name ILIKE '%' || sqlc.narg('search')::text || '%')
+  AND (
+    sqlc.narg('cursor_name')::text IS NULL OR 
+    (w.name, w.id) > (sqlc.narg('cursor_name')::text, sqlc.narg('cursor_id')::uuid)
+  )
+ORDER BY w.name ASC, w.id ASC
+LIMIT $2;
+
+-- name: GetWorkspacesCountByUserID :one
+SELECT count(*) 
+FROM workspaces w
+JOIN members m ON w.id = m.workspace_id
+WHERE m.user_id = $1
+  AND (sqlc.narg('search')::text IS NULL OR w.name ILIKE '%' || sqlc.narg('search')::text || '%');
 
 -- name: CreateCategory :one
 INSERT INTO categories (workspace_id, name)

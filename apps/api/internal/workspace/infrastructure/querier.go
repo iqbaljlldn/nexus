@@ -15,8 +15,10 @@ type Querier interface {
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (Invite, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	FindInviteByCode(ctx context.Context, code string) (Invite, error)
+	GetWorkspacesCountByUserID(ctx context.Context, arg GetWorkspacesCountByUserIDParams) (int64, error)
 	IncrementInviteUseCount(ctx context.Context, id uuid.UUID) (Invite, error)
-	ListWorkspacesByUserID(ctx context.Context, arg ListWorkspacesByUserIDParams) ([]Workspace, error)
+	ListWorkspacesByNameAsc(ctx context.Context, arg ListWorkspacesByNameAscParams) ([]Workspace, error)
+	ListWorkspacesByNewest(ctx context.Context, arg ListWorkspacesByNewestParams) ([]Workspace, error)
 }
 
 var _ Querier = (*Queries)(nil)

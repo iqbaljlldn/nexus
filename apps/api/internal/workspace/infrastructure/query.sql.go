@@ -120,6 +120,26 @@ func (q *Queries) FindInviteByCode(ctx context.Context, code string) (Invite, er
 	return i, err
 }
 
+const getWorkspacesCountByUserID = `-- name: GetWorkspacesCountByUserID :one
+SELECT count(*) 
+FROM workspaces w
+JOIN members m ON w.id = m.workspace_id
+WHERE m.user_id = $1
+  AND ($2::text IS NULL OR w.name ILIKE '%' || $2::text || '%')
+`
+
+type GetWorkspacesCountByUserIDParams struct {
+	UserID uuid.UUID      `json:"user_id"`
+	Search sql.NullString `json:"search"`
+}
+
+func (q *Queries) GetWorkspacesCountByUserID(ctx context.Context, arg GetWorkspacesCountByUserIDParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getWorkspacesCountByUserID, arg.UserID, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const incrementInviteUseCount = `-- name: IncrementInviteUseCount :one
 UPDATE invites
 SET use_count = use_count + 1
@@ -143,23 +163,95 @@ func (q *Queries) IncrementInviteUseCount(ctx context.Context, id uuid.UUID) (In
 	return i, err
 }
 
-const listWorkspacesByUserID = `-- name: ListWorkspacesByUserID :many
+const listWorkspacesByNameAsc = `-- name: ListWorkspacesByNameAsc :many
 SELECT w.id, w.owner_id, w.name, w.icon_url, w.created_at, w.updated_at, w.deleted_at 
 FROM workspaces w
 JOIN members m ON w.id = m.workspace_id
-WHERE m.user_id = $1 AND ($3::uuid IS NULL OR w.id < $3::uuid)
-ORDER BY w.id DESC
+WHERE m.user_id = $1 
+  AND ($3::text IS NULL OR w.name ILIKE '%' || $3::text || '%')
+  AND (
+    $4::text IS NULL OR 
+    (w.name, w.id) > ($4::text, $5::uuid)
+  )
+ORDER BY w.name ASC, w.id ASC
 LIMIT $2
 `
 
-type ListWorkspacesByUserIDParams struct {
-	UserID uuid.UUID     `json:"user_id"`
-	Limit  int32         `json:"limit"`
-	Cursor uuid.NullUUID `json:"cursor"`
+type ListWorkspacesByNameAscParams struct {
+	UserID     uuid.UUID      `json:"user_id"`
+	Limit      int32          `json:"limit"`
+	Search     sql.NullString `json:"search"`
+	CursorName sql.NullString `json:"cursor_name"`
+	CursorID   uuid.NullUUID  `json:"cursor_id"`
 }
 
-func (q *Queries) ListWorkspacesByUserID(ctx context.Context, arg ListWorkspacesByUserIDParams) ([]Workspace, error) {
-	rows, err := q.db.QueryContext(ctx, listWorkspacesByUserID, arg.UserID, arg.Limit, arg.Cursor)
+func (q *Queries) ListWorkspacesByNameAsc(ctx context.Context, arg ListWorkspacesByNameAscParams) ([]Workspace, error) {
+	rows, err := q.db.QueryContext(ctx, listWorkspacesByNameAsc,
+		arg.UserID,
+		arg.Limit,
+		arg.Search,
+		arg.CursorName,
+		arg.CursorID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Workspace
+	for rows.Next() {
+		var i Workspace
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.IconUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkspacesByNewest = `-- name: ListWorkspacesByNewest :many
+SELECT w.id, w.owner_id, w.name, w.icon_url, w.created_at, w.updated_at, w.deleted_at 
+FROM workspaces w
+JOIN members m ON w.id = m.workspace_id
+WHERE m.user_id = $1 
+  AND ($3::text IS NULL OR w.name ILIKE '%' || $3::text || '%')
+  AND (
+    $4::timestamptz IS NULL OR 
+    (w.created_at, w.id) < ($4::timestamptz, $5::uuid)
+  )
+ORDER BY w.created_at DESC, w.id DESC
+LIMIT $2
+`
+
+type ListWorkspacesByNewestParams struct {
+	UserID          uuid.UUID      `json:"user_id"`
+	Limit           int32          `json:"limit"`
+	Search          sql.NullString `json:"search"`
+	CursorCreatedAt sql.NullTime   `json:"cursor_created_at"`
+	CursorID        uuid.NullUUID  `json:"cursor_id"`
+}
+
+func (q *Queries) ListWorkspacesByNewest(ctx context.Context, arg ListWorkspacesByNewestParams) ([]Workspace, error) {
+	rows, err := q.db.QueryContext(ctx, listWorkspacesByNewest,
+		arg.UserID,
+		arg.Limit,
+		arg.Search,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -111,7 +111,7 @@ func TestWorkspaceService_Create_Success(t *testing.T) {
 	assert.Equal(t, "@everyone", createdRole.Name)
 	assert.True(t, createdRole.IsEveryone)
 	assert.Equal(t, roleDomain.DefaultEveryonePermissions, createdRole.PermissionBitmask)
-	assert.Equal(t, 0, createdRole.Position)
+	assert.Equal(t, int32(0), createdRole.Position)
 
 	// Verify member was created as owner with correct workspace ID
 	memberCall := mockMemberPort.Calls[0]

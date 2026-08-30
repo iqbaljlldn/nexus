@@ -2,13 +2,16 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
 	memberDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
 	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
 	wpDomain "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/domain"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/workspace/interface/dto"
 	"github.com/iqbaljlldn/nexus/pkg/logger"
+	"github.com/iqbaljlldn/nexus/pkg/pagination"
 	"go.uber.org/zap"
 )
 
@@ -104,4 +107,110 @@ func (s *WorkspaceService) Create(ctx context.Context, ownerID uuid.UUID, name s
 	}
 
 	return ws, nil
+}
+
+// List retrieves all workspaces owned by the given owner with pagination and search support.
+//
+// It performs the following steps:
+//  1. Sanitizes the search query
+//  2. Queries for workspaces owned by the user
+//  3. Applies cursor-base pagination
+//  4. Maps domain workspaces to HTTP response format
+//
+// Returns a ListWorkspacesResponse containing the paginated workspaces and total count, or an error if the query fails.
+func (s *WorkspaceService) ListByUserID(ctx context.Context, userID uuid.UUID, req *dto.ListWorkspacesRequest) (*dto.ListWorkspacesResponse, *dto.PaginationMeta, error) {
+	log := logger.FromContext(ctx, s.log)
+
+	limit := req.Limit
+	if limit == 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	sortMode := req.SortMode
+	if sortMode == "" {
+		sortMode = "newest"
+	}
+
+	var parsedCursor *pagination.Cursor
+	if req.Cursor != "" {
+		c, err := pagination.DecodeCursor(req.Cursor)
+		if err != nil {
+			log.Warn("invalid cursor string", zap.Error(err), zap.String("cursor", req.Cursor))
+			return nil, nil, fmt.Errorf("invalid cursor")
+		}
+		if c.SortMode != sortMode {
+			log.Warn("cursor sort mode mismatch", zap.String("cursor_mode", c.SortMode), zap.String("req_mode", sortMode))
+			return nil, nil, fmt.Errorf("cursor sort mode mismatch")
+		}
+		parsedCursor = &c
+	}
+
+	var workspaces []wpDomain.Workspace
+	var err error
+
+	// Fetch limit+1 to determine if there's a next page
+	queryLimit := limit + 1
+
+	switch sortMode {
+	case "newest":
+		workspaces, err = s.workspaceRepo.ListByNewest(ctx, userID, req.Search, parsedCursor, queryLimit)
+	case "name_asc":
+		workspaces, err = s.workspaceRepo.ListByNameAsc(ctx, userID, req.Search, parsedCursor, queryLimit)
+	default:
+		return nil, nil, fmt.Errorf("invalid sort_mode")
+	}
+
+	if err != nil {
+		log.Error("failed to list workspaces", zap.Error(err))
+		return nil, nil, fmt.Errorf("list workspaces: %w", err)
+	}
+
+	total, err := s.workspaceRepo.CountByUserID(ctx, userID, req.Search)
+	if err != nil {
+		log.Error("failed to count workspaces", zap.Error(err))
+		// don't fail the whole request just because count failed
+	}
+
+	hasMore := false
+	if len(workspaces) > int(limit) {
+		hasMore = true
+		workspaces = workspaces[:limit]
+	}
+
+	var nextCursorStr *string
+	if hasMore && len(workspaces) > 0 {
+		lastItem := workspaces[len(workspaces)-1]
+		nextCur := pagination.Cursor{
+			SortMode: sortMode,
+			LastID:   lastItem.ID,
+		}
+
+		switch sortMode {
+		case "newest":
+			raw, _ := json.Marshal(lastItem.CreatedAt)
+			nextCur.SortValue = raw
+		case "name_asc":
+			raw, _ := json.Marshal(lastItem.Name)
+			nextCur.SortValue = raw
+		}
+
+		encoded, err := pagination.EncodeCursor(nextCur)
+		if err == nil {
+			nextCursorStr = &encoded
+		} else {
+			log.Error("failed to encode next cursor", zap.Error(err))
+		}
+	}
+
+	return &dto.ListWorkspacesResponse{
+			Workspaces: workspaces,
+		}, &dto.PaginationMeta{
+			Total:   total,
+			Limit:   limit,
+			Cursor:  nextCursorStr,
+			HasMore: hasMore,
+		}, nil
 }

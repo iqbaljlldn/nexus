@@ -26,6 +26,7 @@ trigger: always_on
 - **WAJIB** memakai pola expand-contract untuk perubahan skema pada tabel besar (`messages`, `audit_logs`) — tidak boleh menambah kolom `NOT NULL` langsung tanpa backfill bertahap. _(Database Design §6)_
 - **JANGAN** query `SELECT * FROM members WHERE workspace_id = ...` tanpa pagination — workspace bisa punya hingga 100.000 member. _(SRS FR-WS-08)_
 - List endpoint apapun yang datanya berpotensi besar **WAJIB** cursor-based pagination, bukan offset-based. _(Playbook §17.2)_
+- **JANGAN** membangun `ORDER BY` dari nama kolom yang dikirim client secara langsung (string concatenation) — **WAJIB** whitelist sort mode di service layer, tiap mode dipetakan ke query sqlc eksplisit dengan `id` sebagai tiebreaker. _(LLD §2.2b)_
 
 ## 3. Autentikasi & Keamanan
 

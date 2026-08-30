@@ -227,6 +227,65 @@ LIMIT $2;
 
 **Rationale**: dua kolom `(created_at, id)` sebagai composite cursor mencegah pesan terlewat/terduplikasi saat banyak pesan memiliki timestamp yang sama secara statistik (mis. import massal atau burst traffic tinggi).
 
+### 2.2b Cursor Pagination dengan Dynamic Sort (Menyelesaikan Kombinasi Sort + Search)
+
+Pola §2.2 mengasumsikan urutan tetap `(created_at, id) DESC`. Untuk endpoint yang butuh **sort dinamis** (mis. daftar channel diurutkan nama A-Z, atau hasil search diurutkan relevansi), pola itu tidak cukup — kolom yang dibandingkan di keyset comparison ikut berubah tergantung sort mode, dan `ORDER BY` tidak bisa di-parameterize lewat bind variable (mencoba melakukannya lewat string concatenation adalah **celah SQL injection**, dilarang RULES.md §2).
+
+**Solusi: whitelist sort mode, satu query eksplisit per mode** — bukan satu query dengan `ORDER BY` dinamis.
+
+```go
+type Cursor struct {
+    SortMode  string          `json:"sort_mode"`  // "newest" | "name_asc" | "relevance"
+    SortValue json.RawMessage `json:"sort_value"` // nilai kolom urut: timestamp, string, atau rank score
+    LastID    uuid.UUID       `json:"last_id"`    // tiebreaker, selalu ada di composite key manapun
+}
+```
+
+Setiap sort mode dipetakan ke query sqlc terpisah, dengan `id` sebagai tiebreaker kedua:
+
+```sql
+-- name: ListChannelsByNewest :many
+SELECT * FROM channels
+WHERE workspace_id = $1
+  AND (created_at, id) < (sqlc.arg(cursor_created_at), sqlc.arg(cursor_id))
+ORDER BY created_at DESC, id DESC
+LIMIT $2;
+
+-- name: ListChannelsByNameAsc :many
+SELECT * FROM channels
+WHERE workspace_id = $1
+  AND (name, id) > (sqlc.arg(cursor_name), sqlc.arg(cursor_id))
+ORDER BY name ASC, id ASC
+LIMIT $2;
+
+-- name: SearchMessagesByRelevance :many
+SELECT *, ts_rank(search_vector, query) AS rank FROM messages, plainto_tsquery('simple', sqlc.arg(q)) query
+WHERE channel_id = ANY(sqlc.arg(channel_ids)::uuid[])
+  AND search_vector @@ query
+  AND (ts_rank(search_vector, query), id) < (sqlc.arg(cursor_rank), sqlc.arg(cursor_id))
+ORDER BY rank DESC, id DESC
+LIMIT $1;
+```
+
+Service layer memvalidasi `sort_mode` terhadap whitelist di awal (`ErrInvalidSortMode` bila di luar daftar yang didukung endpoint tersebut), lalu me-route ke query yang sesuai:
+
+```go
+func (s *ChannelService) List(ctx context.Context, workspaceID uuid.UUID, sortMode string, cursor *Cursor, limit int) ([]*Channel, *Cursor, error) {
+    switch sortMode {
+    case "newest":
+        return s.repo.ListByNewest(ctx, workspaceID, cursor, limit)
+    case "name_asc":
+        return s.repo.ListByNameAsc(ctx, workspaceID, cursor, limit)
+    default:
+        return nil, nil, ErrInvalidSortMode
+    }
+}
+```
+
+**Kombinasi dengan filter dinamis (§2.3)**: keduanya independen dan tetap dipakai bersamaan — filter opsional (author, date range, dst.) tetap lewat pola `(param IS NULL OR condition)` di `WHERE`, sort tetap lewat query terpisah per mode. Bila kombinasi filter × sort mode mulai terasa meledak jumlah query-nya, itu sinyal untuk membatasi sort mode yang benar-benar dibutuhkan produk (dalam praktik biasanya 2-3 mode masuk akal per endpoint — "terbaru", "nama", "relevansi" — bukan alasan memaksakan `ORDER BY` dinamis yang membuka celah keamanan).
+
+**Kesalahan yang dihindari secara sengaja**: menerima nama kolom sort langsung dari query parameter client (`?sort=name`) lalu memakainya untuk membangun `ORDER BY name` via string formatting — client bisa mengirim `?sort=name; DROP TABLE users;--` atau memaksa sort ke kolom yang tidak diindex (DoS lewat full table sort). Whitelist di service layer menutup kedua risiko sekaligus.
+
 ### 2.3 Dynamic Query Filter Strategy untuk sqlc (Menyelesaikan Debt ADR-003)
 
 Search dengan banyak kombinasi filter opsional (mis. filter by author, by date range, by has-attachment) sulit diekspresikan sebagai satu query sqlc statis. Strategi yang dipakai: **`sqlc.narg()` (nullable argument) dengan kondisi `OR` terkontrol**, bukan query builder dinamis penuh:

@@ -103,9 +103,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Handler `POST /workspaces` (proteksi Auth Middleware Sprint 2)
-- [ ] Handler `GET /workspaces` (cursor pagination, LLD §2.2 pola)
-- [ ] Test: isolasi antar user (workspace user A tidak muncul di list user B)
+- [x] Handler `POST /workspaces` (proteksi Auth Middleware Sprint 2)
+- [x] Handler `GET /workspaces` (cursor pagination, LLD §2.2 pola)
+- [x] Test: isolasi antar user (workspace user A tidak muncul di list user B)
 
 ---
 
