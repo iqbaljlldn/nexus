@@ -87,10 +87,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `internal/workspace/domain/workspace.go`
-- [ ] Implementasi `WorkspaceService.Create` dengan DB transaction (workspace + member + role + assignment)
-- [ ] Unit test dengan mock; integration test dengan DB nyata
-- [ ] Verifikasi rollback penuh bila salah satu langkah dalam transaksi gagal
+- [x] Implementasi `internal/workspace/domain/workspace.go`
+- [x] Implementasi `WorkspaceService.Create` dengan DB transaction (workspace + member + role + assignment)
+- [x] Unit test dengan mock; integration test dengan DB nyata
+- [x] Verifikasi rollback penuh bila salah satu langkah dalam transaksi gagal
 
 #### Task 3.2.2: Handler — `POST /api/v1/workspaces`, `GET /api/v1/workspaces`
 

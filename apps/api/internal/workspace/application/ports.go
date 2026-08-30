@@ -1,0 +1,35 @@
+package application
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	memberDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
+	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
+)
+
+// TransactionManager executes fn within a single database transaction.
+// The transaction is committed if fn returns nil, rolled back otherwise.
+// Repositories participating in the transaction extract the *sql.Tx from
+// the context provided to fn (via the txcontext package).
+type TransactionManager interface {
+	WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+// MemberPort is the interface the workspace application layer uses to
+// interact with the member domain without importing its infrastructure.
+type MemberPort interface {
+	// Create persists a new member. The DB-generated ID is set on the
+	// member pointer upon success.
+	Create(ctx context.Context, member *memberDomain.Member) error
+}
+
+// RolePort is the interface the workspace application layer uses to
+// interact with the role domain without importing its infrastructure.
+type RolePort interface {
+	// Create persists a new role. The DB-generated ID is set on the
+	// role pointer upon success.
+	Create(ctx context.Context, role *roleDomain.Role) error
+	// Assign creates a member-role assignment.
+	Assign(ctx context.Context, memberID, roleID uuid.UUID) error
+}

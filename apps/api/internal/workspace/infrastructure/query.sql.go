@@ -73,18 +73,19 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Inv
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
-INSERT INTO workspaces (owner_id, name)
-VALUES ($1, $2)
+INSERT INTO workspaces (owner_id, name, icon_url)
+VALUES ($1, $2, $3)
 RETURNING id, owner_id, name, icon_url, created_at, updated_at, deleted_at
 `
 
 type CreateWorkspaceParams struct {
-	OwnerID uuid.UUID `json:"owner_id"`
-	Name    string    `json:"name"`
+	OwnerID uuid.UUID      `json:"owner_id"`
+	Name    string         `json:"name"`
+	IconUrl sql.NullString `json:"icon_url"`
 }
 
 func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRowContext(ctx, createWorkspace, arg.OwnerID, arg.Name)
+	row := q.db.QueryRowContext(ctx, createWorkspace, arg.OwnerID, arg.Name, arg.IconUrl)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,

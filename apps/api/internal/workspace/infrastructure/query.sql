@@ -1,6 +1,6 @@
 -- name: CreateWorkspace :one
-INSERT INTO workspaces (owner_id, name)
-VALUES ($1, $2)
+INSERT INTO workspaces (owner_id, name, icon_url)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: ListWorkspacesByUserID :many

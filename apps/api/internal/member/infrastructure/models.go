@@ -39,6 +39,22 @@ type Member struct {
 	JoinedAt    time.Time      `json:"joined_at"`
 }
 
+type MemberRoleAssignment struct {
+	MemberID uuid.UUID `json:"member_id"`
+	RoleID   uuid.UUID `json:"role_id"`
+}
+
+type Role struct {
+	ID                uuid.UUID `json:"id"`
+	WorkspaceID       uuid.UUID `json:"workspace_id"`
+	Name              string    `json:"name"`
+	PermissionBitmask int64     `json:"permission_bitmask"`
+	Position          int32     `json:"position"`
+	IsEveryone        bool      `json:"is_everyone"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 type Session struct {
 	ID               uuid.UUID      `json:"id"`
 	UserID           uuid.UUID      `json:"user_id"`
