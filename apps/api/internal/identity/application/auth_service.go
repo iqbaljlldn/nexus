@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,13 +57,13 @@ func (s *AuthService) Register(ctx context.Context, emailStr, usernameStr, displ
 	encodedHash, err := passwordhash.Hash(password)
 	if err != nil {
 		log.Error("failed to hash password", zap.Error(err))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
 	passwordHash, err := domain.NewPasswordHash(encodedHash)
 	if err != nil {
 		log.Error("failed to create password hash value object", zap.Error(err))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("create password hash: %w", err)
 	}
 
 	user := domain.NewUser(email, username, displayName, passwordHash)
@@ -83,7 +82,7 @@ func (s *AuthService) Login(ctx context.Context, identifier, password string, de
 	log := logger.FromContext(ctx, s.log)
 	var user *domain.User
 	var err error
-	if strings.Contains(identifier, "@") {
+	if domain.IsEmail(identifier) {
 		user, err = s.userRepo.FindByEmail(ctx, identifier)
 	} else {
 		user, err = s.userRepo.FindByUsername(ctx, identifier)
@@ -99,16 +98,21 @@ func (s *AuthService) Login(ctx context.Context, identifier, password string, de
 		return nil, nil, domain.ErrInvalidCredentials
 	}
 
-	accesToken, err := s.tokenManager.GenerateToken(user.ID.String(), "access", 15*time.Minute, *deviceInfo)
+	sessionID, err := uuid.NewV7()
 	if err != nil {
-		log.Error("failed to generate access token", zap.Error(err), zap.String("user_id", user.ID.String()))
-		return nil, nil, fmt.Errorf("internal server error")
+		sessionID = uuid.New()
 	}
 
-	refreshToken, err := s.tokenManager.GenerateToken(user.ID.String(), "refresh", 24*time.Hour, *deviceInfo)
+	accesToken, err := s.tokenManager.GenerateToken(user.ID.String(), sessionID.String(), "access", 15*time.Minute, *deviceInfo)
+	if err != nil {
+		log.Error("failed to generate access token", zap.Error(err), zap.String("user_id", user.ID.String()))
+		return nil, nil, fmt.Errorf("generate access token: %w", err)
+	}
+
+	refreshToken, err := s.tokenManager.GenerateToken(user.ID.String(), sessionID.String(), "refresh", 24*time.Hour, *deviceInfo)
 	if err != nil {
 		log.Error("failed to generate refresh token", zap.Error(err), zap.String("user_id", user.ID.String()))
-		return nil, nil, fmt.Errorf("internal server error")
+		return nil, nil, fmt.Errorf("generate refresh token: %w", err)
 	}
 
 	tokenPair := &domain.TokenPair{
@@ -119,13 +123,13 @@ func (s *AuthService) Login(ctx context.Context, identifier, password string, de
 	refreshTokenHash, err := passwordhash.Hash(refreshToken)
 	if err != nil {
 		log.Error("failed to hash refresh token", zap.Error(err))
-		return nil, nil, fmt.Errorf("internal server error")
+		return nil, nil, fmt.Errorf("hash refresh token: %w", err)
 	}
 
-	session := domain.NewSession(user.ID.String(), refreshTokenHash, *deviceInfo, 24*time.Hour)
+	session := domain.NewSession(sessionID.String(), user.ID.String(), refreshTokenHash, *deviceInfo, 24*time.Hour)
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
 		log.Error("failed to create session", zap.Error(err), zap.String("user_id", user.ID.String()))
-		return nil, nil, fmt.Errorf("internal server error")
+		return nil, nil, fmt.Errorf("create session: %w", err)
 	}
 
 	log.Info("user logged in successfully", zap.String("user_id", user.ID.String()), zap.String("session_id", session.ID), zap.String("email", user.Email.String()))
@@ -136,24 +140,26 @@ func (s *AuthService) Login(ctx context.Context, identifier, password string, de
 func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*domain.TokenPair, error) {
 	log := logger.FromContext(ctx, s.log)
 
-	session, err := s.sessionRepo.FindByRefreshToken(ctx, refreshToken)
+	claims, err := s.tokenManager.ParseToken(refreshToken, "refresh")
 	if err != nil {
-		log.Warn("invalid token", zap.String("refresh_token", refreshToken))
+		log.Warn("invalid token signature or format", zap.Error(err))
 		return nil, domain.ErrInvalidToken
 	}
 
-	if session.ExpiresAt.Before(time.Now()) {
-		log.Warn("invalid token", zap.String("refresh_token", refreshToken))
+	sessionUUID, err := uuid.Parse(claims.ID)
+	if err != nil {
+		log.Warn("invalid session id in token", zap.Error(err))
 		return nil, domain.ErrInvalidToken
 	}
 
-	if session.UserAgent == "" {
-		log.Warn("invalid token", zap.String("refresh_token", refreshToken))
+	session, err := s.sessionRepo.FindById(ctx, sessionUUID)
+	if err != nil {
+		log.Warn("session not found for token", zap.String("session_id", claims.ID))
 		return nil, domain.ErrInvalidToken
 	}
 
-	if session.IPAddress == "" {
-		log.Warn("invalid token", zap.String("refresh_token", refreshToken))
+	if matched, _ := passwordhash.Verify(refreshToken, session.RefreshTokenHash); !matched {
+		log.Warn("token hash mismatch", zap.String("session_id", claims.ID))
 		return nil, domain.ErrInvalidToken
 	}
 
@@ -163,34 +169,38 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*d
 		UserAgent: session.UserAgent,
 	}
 
-	accessToken, err := s.tokenManager.GenerateToken(session.UserID, "access", 15*time.Minute, deviceInfo)
+	if err := session.IsValidForRefresh(deviceInfo); err != nil {
+		log.Warn("session invalid for refresh", zap.Error(err))
+		return nil, err
+	}
+
+	newSessionID, err := uuid.NewV7()
+	if err != nil {
+		newSessionID = uuid.New()
+	}
+
+	accessToken, err := s.tokenManager.GenerateToken(session.UserID, newSessionID.String(), "access", 15*time.Minute, deviceInfo)
 	if err != nil {
 		log.Error("failed to generate access token", zap.Error(err), zap.String("user_id", session.UserID))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("generate access token: %w", err)
 	}
 
-	newRefreshToken, err := s.tokenManager.GenerateToken(session.UserID, "refresh", 24*time.Hour, deviceInfo)
+	newRefreshToken, err := s.tokenManager.GenerateToken(session.UserID, newSessionID.String(), "refresh", 24*time.Hour, deviceInfo)
 	if err != nil {
 		log.Error("failed to generate refresh token", zap.Error(err), zap.String("user_id", session.UserID))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	// WARNING: If passwordhash.Hash is Argon2, it's problematic for lookups, but we follow the existing pattern for now.
 	newRefreshTokenHash, err := passwordhash.Hash(newRefreshToken)
 	if err != nil {
 		log.Error("failed to hash new refresh token", zap.Error(err))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("hash refresh token: %w", err)
 	}
 
-	// Assuming session.RefreshTokenHash is populated. Wait, it is stored in session.RefreshTokenHash!
-	// But wait, the repo query for FindByRefreshToken passed the plain `refreshToken` which would only work if it was NOT salted or if FindByRefreshToken handled it!
-	// For RotateRefreshToken we pass the old hash (which we don't have unless we use session.RefreshTokenHash if it's available).
-	// Let's pass the plain token or the hash? Rotate expects oldTokenHash and newTokenHash.
-	// Since FindByRefreshToken works (somehow), we use session.RefreshTokenHash as the old token hash.
-	err = s.sessionRepo.RotateRefreshToken(ctx, session.RefreshTokenHash, newRefreshTokenHash)
+	err = s.sessionRepo.RotateRefreshToken(ctx, session.ID, newSessionID.String(), newRefreshTokenHash)
 	if err != nil {
 		log.Error("failed to rotate refresh token", zap.Error(err), zap.String("user_id", session.UserID))
-		return nil, fmt.Errorf("internal server error")
+		return nil, fmt.Errorf("rotate refresh token: %w", err)
 	}
 
 	return &domain.TokenPair{
@@ -202,9 +212,26 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*d
 func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	log := logger.FromContext(ctx, s.log)
 
-	session, err := s.sessionRepo.FindByRefreshToken(ctx, refreshToken)
+	claims, err := s.tokenManager.ParseToken(refreshToken, "refresh")
 	if err != nil {
-		log.Warn("refresh token not found", zap.Error(err))
+		log.Warn("invalid token signature or format", zap.Error(err))
+		return domain.ErrInvalidToken
+	}
+
+	sessionUUID, err := uuid.Parse(claims.ID)
+	if err != nil {
+		log.Warn("invalid session id in token", zap.Error(err))
+		return domain.ErrInvalidToken
+	}
+
+	session, err := s.sessionRepo.FindById(ctx, sessionUUID)
+	if err != nil {
+		log.Warn("session not found for token", zap.String("session_id", claims.ID))
+		return domain.ErrInvalidToken
+	}
+
+	if matched, _ := passwordhash.Verify(refreshToken, session.RefreshTokenHash); !matched {
+		log.Warn("token hash mismatch", zap.String("session_id", claims.ID))
 		return domain.ErrInvalidToken
 	}
 
@@ -213,10 +240,10 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 		return domain.ErrExpiredToken
 	}
 
-	err = s.sessionRepo.RevokeSession(ctx, refreshToken)
+	_, err = s.sessionRepo.RevokeSessionById(ctx, sessionUUID)
 	if err != nil {
 		log.Error("failed to revoke session", zap.Error(err), zap.String("user_id", session.UserID))
-		return fmt.Errorf("internal server error")
+		return fmt.Errorf("revoke session: %w", err)
 	}
 
 	log.Info("user logged out successfully", zap.String("user_id", session.UserID), zap.String("session_id", session.ID))
@@ -229,14 +256,12 @@ func (s *AuthService) LogoutAll(ctx context.Context) error {
 
 	if err := s.sessionRepo.RevokeAllSessions(ctx); err != nil {
 		log.Error("failed to revoke all sessions", zap.Error(err))
-		return fmt.Errorf("internal server error")
+		return fmt.Errorf("revoke all sessions: %w", err)
 	}
 
 	userID := ""
 	if id, err := contextutil.UserID(ctx); err == nil {
 		userID = id.String()
-	} else if ginCtxValue := ctx.Value("user_id"); ginCtxValue != nil {
-		userID, _ = ginCtxValue.(string)
 	}
 
 	log.Info("user logged out from all devices successfully", zap.String("user_id", userID))
@@ -276,8 +301,6 @@ func (s *AuthService) RevokeSessionById(ctx context.Context, id string) (*domain
 	userID := ""
 	if id, err := contextutil.UserID(ctx); err == nil {
 		userID = id.String()
-	} else if ginCtxValue := ctx.Value("user_id"); ginCtxValue != nil {
-		userID, _ = ginCtxValue.(string)
 	}
 
 	if session.UserID != userID {
@@ -288,7 +311,7 @@ func (s *AuthService) RevokeSessionById(ctx context.Context, id string) (*domain
 	session, err = s.sessionRepo.RevokeSessionById(ctx, sessionID)
 	if err != nil {
 		log.Error("failed to revoke session", zap.Error(err), zap.String("session_id", id))
-		return nil, fmt.Errorf("failed to revoke session")
+		return nil, fmt.Errorf("revoke session: %w", err)
 	}
 
 	log.Info("session revoked successfully", zap.String("session_id", id))

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	jwtutil "github.com/iqbaljlldn/nexus/pkg/jwt"
 )
@@ -22,13 +21,13 @@ func NewJWTTokenManager(issuer, audience string) domain.TokenManager {
 	}
 }
 
-func (m *JWTTokenManager) GenerateToken(userID, tokenType string, duration time.Duration, deviceInfo domain.DeviceInfo) (string, error) {
+func (m *JWTTokenManager) GenerateToken(userID, sessionID, tokenType string, duration time.Duration, deviceInfo domain.DeviceInfo) (string, error) {
 	now := time.Now()
 	payload := &domain.Claims{
 		UserID:    userID,
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        uuid.NewString(),
+			ID:        sessionID,
 			Subject:   userID,
 			Issuer:    m.issuer,
 			Audience:  jwt.ClaimStrings{m.audience},

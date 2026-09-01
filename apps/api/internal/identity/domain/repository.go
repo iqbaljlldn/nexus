@@ -25,9 +25,7 @@ type UserRepository interface {
 
 type SessionRepository interface {
 	Create(ctx context.Context, session *Session) error
-	RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error
-	FindByRefreshToken(ctx context.Context, refreshToken string) (*Session, error)
-	RevokeSession(ctx context.Context, refreshToken string) error
+	RotateRefreshToken(ctx context.Context, oldSessionID, newSessionID, newTokenHash string) error
 	RevokeAllSessions(ctx context.Context) error
 	GetActiveSessions(ctx context.Context) ([]Session, error)
 	RevokeSessionById(ctx context.Context, id uuid.UUID) (*Session, error)

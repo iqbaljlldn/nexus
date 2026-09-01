@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Session struct {
@@ -17,10 +15,10 @@ type Session struct {
 	CreatedAt        time.Time
 }
 
-func NewSession(userID, refreshTokenHash string, deviceInfo DeviceInfo, duration time.Duration) *Session {
+func NewSession(id, userID, refreshTokenHash string, deviceInfo DeviceInfo, duration time.Duration) *Session {
 	now := time.Now().UTC()
 	return &Session{
-		ID:               uuid.New().String(),
+		ID:               id,
 		UserID:           userID,
 		RefreshTokenHash: refreshTokenHash,
 		UserAgent:        deviceInfo.UserAgent,
@@ -29,4 +27,19 @@ func NewSession(userID, refreshTokenHash string, deviceInfo DeviceInfo, duration
 		CreatedAt:        now,
 		ExpiresAt:        now.Add(duration),
 	}
+}
+
+func (s *Session) IsValidForRefresh(deviceInfo DeviceInfo) error {
+	if s.ExpiresAt.Before(time.Now()) {
+		return ErrExpiredToken
+	}
+
+	if s.UserAgent == "" || s.IPAddress == "" {
+		return ErrInvalidToken
+	}
+
+	// Strictly, we could also check if s.UserAgent == deviceInfo.UserAgent
+	// and s.IPAddress == deviceInfo.IPAddress, but current logic just checks if session has them.
+	// We'll keep the current leniency to match old logic, but it's now encapsulated here.
+	return nil
 }

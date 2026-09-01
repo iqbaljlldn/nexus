@@ -19,6 +19,6 @@ type Claims struct {
 }
 
 type TokenManager interface {
-	GenerateToken(userID, tokenType string, duration time.Duration, deviceInfo DeviceInfo) (string, error)
+	GenerateToken(userID, sessionID, tokenType string, duration time.Duration, deviceInfo DeviceInfo) (string, error)
 	ParseToken(token, tokenType string) (*Claims, error)
 }

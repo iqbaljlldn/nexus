@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/infrastructure"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -69,7 +70,8 @@ func TestPostgresSessionRepository_RotateRefreshToken(t *testing.T) {
 	assert.Equal(t, "active", dbSession.Status)
 
 	// 2. Rotate the refresh token
-	err = repo.RotateRefreshToken(ctx, oldTokenHash, newTokenHash)
+	newSessionID := uuid.New().String()
+	err = repo.RotateRefreshToken(ctx, session.ID, newSessionID, newTokenHash)
 	assert.NoError(t, err)
 
 	// 3. Verify old token is revoked

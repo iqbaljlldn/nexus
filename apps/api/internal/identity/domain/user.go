@@ -40,6 +40,11 @@ func (e Email) String() string {
 	return string(e)
 }
 
+// IsEmail returns true if the given identifier looks like an email.
+func IsEmail(identifier string) bool {
+	return strings.Contains(identifier, "@")
+}
+
 // Username represents a validated username.
 type Username string
 

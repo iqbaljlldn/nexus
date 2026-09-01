@@ -20,16 +20,10 @@ func NewPostgresSessionRepository(db *sql.DB) domain.SessionRepository {
 	return &PostgresSessionRepository{db: db}
 }
 
-func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.Session) error {
-	userID, err := uuid.Parse(session.UserID)
-	if err != nil {
-		return err
-	}
-
-	ip := net.ParseIP(session.IPAddress)
+func parseIP(ipStr string) pqtype.Inet {
 	var inet pqtype.Inet
+	ip := net.ParseIP(ipStr)
 	if ip != nil {
-		// Just passing the IP, assuming it's a single host (/32 or /128)
 		if v4 := ip.To4(); v4 != nil {
 			inet.IPNet = net.IPNet{IP: v4, Mask: net.CIDRMask(32, 32)}
 		} else {
@@ -37,15 +31,29 @@ func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.
 		}
 		inet.Valid = true
 	}
+	return inet
+}
+
+func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.Session) error {
+	sessionID, err := uuid.Parse(session.ID)
+	if err != nil {
+		return err
+	}
+
+	userID, err := uuid.Parse(session.UserID)
+	if err != nil {
+		return err
+	}
 
 	params := CreateSessionParams{
+		ID:               sessionID,
 		UserID:           userID,
 		RefreshTokenHash: session.RefreshTokenHash,
 		UserAgent: sql.NullString{
 			String: session.UserAgent,
 			Valid:  session.UserAgent != "",
 		},
-		IpAddress: inet,
+		IpAddress: parseIP(session.IPAddress),
 		ExpiresAt: session.ExpiresAt,
 	}
 
@@ -54,14 +62,23 @@ func (r *PostgresSessionRepository) Create(ctx context.Context, session *domain.
 		return err
 	}
 
-	session.ID = dbSession.ID.String()
 	session.CreatedAt = dbSession.CreatedAt
 	// Note: Status is handled by DB default (e.g. 'active')
 
 	return nil
 }
 
-func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error {
+func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldSessionID, newSessionID, newTokenHash string) error {
+	sessionUUID, err := uuid.Parse(oldSessionID)
+	if err != nil {
+		return err
+	}
+
+	newSessionUUID, err := uuid.Parse(newSessionID)
+	if err != nil {
+		return err
+	}
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -75,13 +92,14 @@ func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldT
 	q := New(tx)
 
 	// 1. Revoke the old session
-	oldSession, err := q.RevokeSession(ctx, oldTokenHash)
+	oldSession, err := q.RevokeSessionById(ctx, sessionUUID)
 	if err != nil {
 		return err
 	}
 
 	// Create the new session based on the old one
 	params := CreateSessionParams{
+		ID:               newSessionUUID,
 		UserID:           oldSession.UserID,
 		RefreshTokenHash: newTokenHash,
 		UserAgent:        oldSession.UserAgent,
@@ -95,50 +113,6 @@ func (r *PostgresSessionRepository) RotateRefreshToken(ctx context.Context, oldT
 	}
 
 	return tx.Commit()
-}
-
-func (r *PostgresSessionRepository) FindByRefreshToken(ctx context.Context, refreshToken string) (*domain.Session, error) {
-	dbSession, err := New(r.db).FindSessionByTokenHash(ctx, refreshToken)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, domain.ErrInvalidToken
-		}
-		return nil, err
-	}
-
-	if dbSession.ExpiresAt.Before(time.Now()) {
-		return nil, domain.ErrInvalidToken
-	}
-
-	if !dbSession.UserAgent.Valid {
-		return nil, domain.ErrInvalidToken
-	}
-
-	if !dbSession.IpAddress.Valid {
-		return nil, domain.ErrInvalidToken
-	}
-
-	return &domain.Session{
-		ID:               dbSession.ID.String(),
-		UserID:           dbSession.UserID.String(),
-		RefreshTokenHash: dbSession.RefreshTokenHash,
-		UserAgent:        dbSession.UserAgent.String,
-		IPAddress:        dbSession.IpAddress.IPNet.String(),
-		ExpiresAt:        dbSession.ExpiresAt,
-		CreatedAt:        dbSession.CreatedAt,
-	}, nil
-}
-
-func (r *PostgresSessionRepository) RevokeSession(ctx context.Context, refreshToken string) error {
-	_, err := New(r.db).RevokeSession(ctx, refreshToken)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return domain.ErrInvalidToken
-		}
-		return err
-	}
-
-	return nil
 }
 
 func (r *PostgresSessionRepository) RevokeAllSessions(ctx context.Context) error {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/domain"
@@ -19,6 +20,7 @@ import (
 	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 	"github.com/iqbaljlldn/nexus/pkg/httpresponse"
+	"github.com/iqbaljlldn/nexus/pkg/passwordhash"
 	"github.com/iqbaljlldn/nexus/pkg/ratelimit"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
@@ -168,8 +170,8 @@ func (m *MockSessionRepository) Create(ctx context.Context, session *domain.Sess
 	return args.Error(0)
 }
 
-func (m *MockSessionRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string) error {
-	args := m.Called(ctx, oldTokenHash, newTokenHash)
+func (m *MockSessionRepository) RotateRefreshToken(ctx context.Context, oldSessionID, newSessionID, newTokenHash string) error {
+	args := m.Called(ctx, oldSessionID, newSessionID, newTokenHash)
 	return args.Error(0)
 }
 
@@ -219,8 +221,8 @@ type MockTokenManager struct {
 	mock.Mock
 }
 
-func (m *MockTokenManager) GenerateToken(userID, tokenType string, duration time.Duration, deviceInfo domain.DeviceInfo) (string, error) {
-	args := m.Called(userID, tokenType, duration, deviceInfo)
+func (m *MockTokenManager) GenerateToken(userID, sessionID, tokenType string, duration time.Duration, deviceInfo domain.DeviceInfo) (string, error) {
+	args := m.Called(userID, sessionID, tokenType, duration, deviceInfo)
 	return args.String(0), args.Error(1)
 }
 
@@ -262,6 +264,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
 		validSession := &domain.Session{
+			ID:               "11111111-1111-1111-1111-111111111111",
 			UserID:           "test-user-id",
 			RefreshTokenHash: "old-hash",
 			IPAddress:        "127.0.0.1",
@@ -269,10 +272,16 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			ExpiresAt:        time.Now().Add(1 * time.Hour),
 		}
 
-		mockSessionRepo.On("FindByRefreshToken", mock.Anything, "valid-refresh-token").Return(validSession, nil)
-		mockTokenManager.On("GenerateToken", "test-user-id", "access", mock.Anything, mock.Anything).Return("new-access-token", nil)
-		mockTokenManager.On("GenerateToken", "test-user-id", "refresh", mock.Anything, mock.Anything).Return("new-refresh-token", nil)
-		mockSessionRepo.On("RotateRefreshToken", mock.Anything, "old-hash", mock.Anything).Return(nil)
+		hashedToken, _ := passwordhash.Hash("valid-refresh-token")
+		validSession.RefreshTokenHash = hashedToken
+
+		mockTokenManager.On("ParseToken", "valid-refresh-token", "refresh").Return(&domain.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{ID: "11111111-1111-1111-1111-111111111111"},
+		}, nil)
+		mockSessionRepo.On("FindById", mock.Anything, uuid.MustParse("11111111-1111-1111-1111-111111111111")).Return(validSession, nil)
+		mockTokenManager.On("GenerateToken", "test-user-id", mock.Anything, "access", mock.Anything, mock.Anything).Return("new-access-token", nil)
+		mockTokenManager.On("GenerateToken", "test-user-id", mock.Anything, "refresh", mock.Anything, mock.Anything).Return("new-refresh-token", nil)
+		mockSessionRepo.On("RotateRefreshToken", mock.Anything, "11111111-1111-1111-1111-111111111111", mock.Anything, mock.Anything).Return(nil)
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
@@ -321,7 +330,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		mockTokenManager := new(MockTokenManager)
 		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
-		mockSessionRepo.On("FindByRefreshToken", mock.Anything, "expired-token").Return((*domain.Session)(nil), domain.ErrInvalidToken)
+		mockTokenManager.On("ParseToken", "expired-token", "refresh").Return((*domain.Claims)(nil), domain.ErrInvalidToken)
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
@@ -365,6 +374,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 		router := setupRouter(mockUserRepo, mockSessionRepo, mockTokenManager, logger)
 
 		validSession := &domain.Session{
+			ID:               "11111111-1111-1111-1111-111111111111",
 			UserID:           "test-user-id",
 			RefreshTokenHash: "old-hash",
 			IPAddress:        "127.0.0.1",
@@ -372,8 +382,14 @@ func TestAuthHandler_Logout(t *testing.T) {
 			ExpiresAt:        time.Now().Add(1 * time.Hour),
 		}
 
-		mockSessionRepo.On("FindByRefreshToken", mock.Anything, "valid-refresh-token").Return(validSession, nil)
-		mockSessionRepo.On("RevokeSession", mock.Anything, "valid-refresh-token").Return(nil)
+		hashedToken, _ := passwordhash.Hash("valid-refresh-token")
+		validSession.RefreshTokenHash = hashedToken
+
+		mockTokenManager.On("ParseToken", "valid-refresh-token", "refresh").Return(&domain.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{ID: "11111111-1111-1111-1111-111111111111"},
+		}, nil)
+		mockSessionRepo.On("FindById", mock.Anything, uuid.MustParse("11111111-1111-1111-1111-111111111111")).Return(validSession, nil)
+		mockSessionRepo.On("RevokeSessionById", mock.Anything, uuid.MustParse("11111111-1111-1111-1111-111111111111")).Return(validSession, nil)
 
 		req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
 		req.Header.Set("X-CSRF-Token", "valid-csrf-token")
