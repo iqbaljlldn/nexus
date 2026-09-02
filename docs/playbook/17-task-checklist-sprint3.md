@@ -174,9 +174,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Definisikan `type PermissionFlag int64` + konstanta `1 << iota`
-- [ ] Method `Has(flag)`, `Add(flag)`, `Remove(flag)` pada bitmask
-- [ ] Unit test: tidak ada tabrakan bit, kombinasi flag bekerja benar
+- [x] Definisikan `type PermissionFlag int64` + konstanta `1 << iota`
+- [x] Fungsi `Has(flag)` dan bitwise operator (AND/OR) pada bitmask
+- [x] Unit test: manipulasi bitmask (OR, AND, XOR) berjalan sesuai prediksi tanpa bit collision
 
 #### Task 3.4.3: Handler — `POST /workspaces/{id}/roles`, Assignment Role ke Member
 
@@ -189,9 +189,14 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Handler `POST /workspaces/{id}/roles`
-- [ ] Handler `PATCH /workspaces/{id}/members/{memberId}/roles`
-- [ ] Test: create role custom, assign, verifikasi member memiliki role tersebut
+- [x] Service layer logic
+- [x] `POST` → auto-assign `position = max(position) + 1` bila tidak diberikan
+- [x] `POST` → dilarang membuat role dengan `is_everyone = true` (hanya via pembuatan workspace)
+- [x] `PATCH` → replace seluruh assignment lama dengan array `role_ids` baru
+- [x] `PATCH` → wajib selalu meng-include role `@everyone` dalam assignment member, tidak boleh dihapus
+- [x] Handler `POST /workspaces/{id}/roles`
+- [x] Handler `PATCH /workspaces/{id}/members/{memberId}/roles`
+- [x] (TODO stub) Cek permission `MANAGE_ROLES` di handler (implementasi aktual menunggu Phase E)
 
 ---
 

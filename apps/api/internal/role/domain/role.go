@@ -7,14 +7,19 @@ import (
 )
 
 // PermissionFlag represents a single permission bit.
-// TODO(task-3.4.2): Extend with remaining Sprint 3 flags: MANAGE_WORKSPACE,
-// MANAGE_ROLES, MANAGE_CHANNELS, MANAGE_INVITES, MANAGE_MESSAGES,
-// KICK_MEMBERS, BAN_MEMBERS. Add flags for future sprints as needed (YAGNI).
+// Flags are defined per-sprint as needed (YAGNI). Sprint 3 flags below;
+// additional flags (e.g. MENTION_EVERYONE, SHARE_SCREEN) added in future sprints.
 type PermissionFlag int64
 
 const (
-	PermSendMessages PermissionFlag = 1 << iota
-	// Additional flags will be defined in Task 3.4.2
+	PermSendMessages    PermissionFlag = 1 << iota // 1
+	PermManageWorkspace                            // 2
+	PermManageRoles                                // 4
+	PermManageChannels                             // 8
+	PermManageInvites                              // 16
+	PermManageMessages                             // 32
+	PermKickMembers                                // 64
+	PermBanMembers                                 // 128
 )
 
 // DefaultEveryonePermissions is the bitmask applied to the auto-created
@@ -24,6 +29,16 @@ const DefaultEveryonePermissions int64 = int64(PermSendMessages)
 // Has reports whether the bitmask includes the given flag.
 func (p PermissionFlag) Has(flag PermissionFlag) bool {
 	return p&flag == flag
+}
+
+// Add returns a new bitmask with the given flag set.
+func (p PermissionFlag) Add(flag PermissionFlag) PermissionFlag {
+	return p | flag
+}
+
+// Remove returns a new bitmask with the given flag cleared.
+func (p PermissionFlag) Remove(flag PermissionFlag) PermissionFlag {
+	return p &^ flag
 }
 
 type Role struct {

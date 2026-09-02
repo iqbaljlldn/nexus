@@ -39,3 +39,15 @@ SELECT *
 FROM roles
 WHERE workspace_id = $1 AND is_everyone = true;
 
+-- name: GetMaxRolePositionByWorkspace :one
+SELECT COALESCE(MAX(position), 0)::int AS max_position
+FROM roles
+WHERE workspace_id = $1;
+
+-- name: ListRoleAssignmentsByMember :many
+SELECT * FROM member_role_assignments
+WHERE member_id = $1;
+
+-- name: DeleteAllRoleAssignmentsByMember :exec
+DELETE FROM member_role_assignments
+WHERE member_id = $1;

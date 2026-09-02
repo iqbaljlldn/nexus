@@ -13,9 +13,12 @@ import (
 type Querier interface {
 	AssignRoleToMember(ctx context.Context, arg AssignRoleToMemberParams) (MemberRoleAssignment, error)
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
+	DeleteAllRoleAssignmentsByMember(ctx context.Context, memberID uuid.UUID) error
 	DeleteRole(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	GetEveryoneRoleByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) (Role, error)
+	GetMaxRolePositionByWorkspace(ctx context.Context, workspaceID uuid.UUID) (int32, error)
 	GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error)
+	ListRoleAssignmentsByMember(ctx context.Context, memberID uuid.UUID) ([]MemberRoleAssignment, error)
 	ListRolesByWorkspace(ctx context.Context, arg ListRolesByWorkspaceParams) ([]Role, error)
 	RemoveRoleFromMember(ctx context.Context, arg RemoveRoleFromMemberParams) (MemberRoleAssignment, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)

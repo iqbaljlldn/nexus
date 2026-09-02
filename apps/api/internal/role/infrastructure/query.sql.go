@@ -70,6 +70,16 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 	return i, err
 }
 
+const deleteAllRoleAssignmentsByMember = `-- name: DeleteAllRoleAssignmentsByMember :exec
+DELETE FROM member_role_assignments
+WHERE member_id = $1
+`
+
+func (q *Queries) DeleteAllRoleAssignmentsByMember(ctx context.Context, memberID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteAllRoleAssignmentsByMember, memberID)
+	return err
+}
+
 const deleteRole = `-- name: DeleteRole :one
 DELETE FROM roles WHERE id = $1 RETURNING id
 `
@@ -102,6 +112,19 @@ func (q *Queries) GetEveryoneRoleByWorkspaceID(ctx context.Context, workspaceID 
 	return i, err
 }
 
+const getMaxRolePositionByWorkspace = `-- name: GetMaxRolePositionByWorkspace :one
+SELECT COALESCE(MAX(position), 0)::int AS max_position
+FROM roles
+WHERE workspace_id = $1
+`
+
+func (q *Queries) GetMaxRolePositionByWorkspace(ctx context.Context, workspaceID uuid.UUID) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getMaxRolePositionByWorkspace, workspaceID)
+	var max_position int32
+	err := row.Scan(&max_position)
+	return max_position, err
+}
+
 const getRoleByID = `-- name: GetRoleByID :one
 SELECT id, workspace_id, name, permission_bitmask, position, is_everyone, created_at, updated_at
 FROM roles
@@ -122,6 +145,34 @@ func (q *Queries) GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listRoleAssignmentsByMember = `-- name: ListRoleAssignmentsByMember :many
+SELECT member_id, role_id FROM member_role_assignments
+WHERE member_id = $1
+`
+
+func (q *Queries) ListRoleAssignmentsByMember(ctx context.Context, memberID uuid.UUID) ([]MemberRoleAssignment, error) {
+	rows, err := q.db.QueryContext(ctx, listRoleAssignmentsByMember, memberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MemberRoleAssignment
+	for rows.Next() {
+		var i MemberRoleAssignment
+		if err := rows.Scan(&i.MemberID, &i.RoleID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listRolesByWorkspace = `-- name: ListRolesByWorkspace :many
