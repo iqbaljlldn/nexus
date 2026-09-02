@@ -153,7 +153,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		}
 	}
 
-	tokenPair, _, err := h.authService.Login(c, req.Identifier, req.Password, req.DeviceInfo)
+	deviceInfo := req.DeviceInfo
+	if deviceInfo == nil {
+		deviceInfo = &domain.DeviceInfo{
+			DeviceID:  "unknown",
+			IPAddress: c.ClientIP(),
+			UserAgent: c.Request.UserAgent(),
+		}
+	}
+
+	tokenPair, _, err := h.authService.Login(c.Request.Context(), req.Identifier, req.Password, deviceInfo)
 	if err != nil {
 		// Record failed attempt for rate limiting
 		if h.loginRateLimiter != nil && errors.Is(err, domain.ErrInvalidCredentials) {

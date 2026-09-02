@@ -64,6 +64,8 @@ type Session struct {
 	Status           string         `json:"status"`
 	ExpiresAt        time.Time      `json:"expires_at"`
 	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	DeletedAt        sql.NullTime   `json:"deleted_at"`
 }
 
 type User struct {

@@ -51,8 +51,8 @@ func TestPostgresSessionRepository_RotateRefreshToken(t *testing.T) {
 	oldTokenHash := "old_hash_123"
 	newTokenHash := "new_hash_456"
 
-	// 1. Create a session
 	session := &domain.Session{
+		ID:               uuid.New().String(),
 		UserID:           user.ID.String(),
 		RefreshTokenHash: oldTokenHash,
 		UserAgent:        "TestAgent",
@@ -90,6 +90,6 @@ func TestPostgresSessionRepository_RotateRefreshToken(t *testing.T) {
 	newSession, err := q.FindSessionByTokenHash(ctx, newTokenHash)
 	assert.NoError(t, err)
 	assert.Equal(t, "active", newSession.Status)
-	assert.Equal(t, user.ID, newSession.UserID.String())
+	assert.Equal(t, user.ID.String(), newSession.UserID.String())
 	assert.Equal(t, "TestAgent", newSession.UserAgent.String)
 }

@@ -20,7 +20,7 @@ INSERT INTO sessions (
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 )
-RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at
 `
 
 type CreateSessionParams struct {
@@ -51,6 +51,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.Status,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -102,7 +104,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const findActiveSessionsByUserId = `-- name: FindActiveSessionsByUserId :many
-SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at
 FROM sessions
 WHERE
     user_id = $1
@@ -128,6 +130,8 @@ func (q *Queries) FindActiveSessionsByUserId(ctx context.Context, userID uuid.UU
 			&i.Status,
 			&i.ExpiresAt,
 			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -143,7 +147,7 @@ func (q *Queries) FindActiveSessionsByUserId(ctx context.Context, userID uuid.UU
 }
 
 const findSessionById = `-- name: FindSessionById :one
-SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at
 FROM sessions
 WHERE
     id = $1
@@ -164,12 +168,14 @@ func (q *Queries) FindSessionById(ctx context.Context, id uuid.UUID) (Session, e
 		&i.Status,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const findSessionByTokenHash = `-- name: FindSessionByTokenHash :one
-SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at FROM sessions
+SELECT id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at FROM sessions
 WHERE
     refresh_token_hash = $1
     AND deleted_at IS NULL
@@ -188,6 +194,8 @@ func (q *Queries) FindSessionByTokenHash(ctx context.Context, refreshTokenHash s
 		&i.Status,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -268,7 +276,7 @@ SET
 WHERE
     refresh_token_hash = $1
     AND deleted_at IS NULL
-RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at
 `
 
 func (q *Queries) RevokeSession(ctx context.Context, refreshTokenHash string) (Session, error) {
@@ -283,6 +291,8 @@ func (q *Queries) RevokeSession(ctx context.Context, refreshTokenHash string) (S
 		&i.Status,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -297,7 +307,7 @@ WHERE
     id = $1
     AND deleted_at IS NULL
     AND status = 'active'
-RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at
+RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, status, expires_at, created_at, updated_at, deleted_at
 `
 
 func (q *Queries) RevokeSessionById(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -312,6 +322,8 @@ func (q *Queries) RevokeSessionById(ctx context.Context, id uuid.UUID) (Session,
 		&i.Status,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }

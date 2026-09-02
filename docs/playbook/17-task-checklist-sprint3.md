@@ -138,9 +138,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Handler `POST /workspaces/{id}/invites`
-- [ ] Handler `POST /invites/{code}/redeem` — validasi header `Idempotency-Key` ada
-- [ ] Test: create → redeem → verifikasi member baru; redeem tanpa idempotency key → 400
+- [x] Handler `POST /workspaces/{id}/invites`
+- [x] Handler `POST /invites/{code}/redeem` — validasi header `Idempotency-Key` ada
+- [x] Test: create → redeem → verifikasi member baru; redeem tanpa idempotency key → 400
 
 ---
 

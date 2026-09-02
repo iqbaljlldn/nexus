@@ -11,7 +11,9 @@ CREATE TABLE sessions (
     ip_address          INET,
     status              VARCHAR(16) NOT NULL DEFAULT 'active',
     expires_at          TIMESTAMPTZ NOT NULL,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at          TIMESTAMPTZ
 );
 
 -- Composite index for querying active sessions per user (login check, session list)

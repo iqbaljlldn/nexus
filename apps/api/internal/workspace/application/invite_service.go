@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	mbDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
@@ -52,16 +53,17 @@ func (s *InviteService) Create(ctx context.Context, req dto.CreateInviteReq) (*w
 		}
 	}
 
-	code, err := uuid.NewRandom()
+	rawUUID, err := uuid.NewRandom()
 	if err != nil {
 		log.Error("failed to generate invite code", zap.Error(err))
 		return nil, fmt.Errorf("generate invite code: %w", err)
 	}
+	codeStr := strings.ReplaceAll(rawUUID.String(), "-", "")[:10]
 
 	invite := wpDomain.NewInvite(
 		req.WorkspaceID,
 		userID,
-		code.String(),
+		codeStr,
 		req.MaxUses,
 		req.ExpiresAt,
 	)
