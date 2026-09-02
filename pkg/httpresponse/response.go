@@ -3,11 +3,29 @@ package httpresponse
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
 )
+
+const (
+	RequestStartTimeKey = "request_start_time"
+	ResponseTimeHeader  = "X-Response-Time"
+)
+
+func setResponseTimeHeader(c *gin.Context) {
+	if c == nil || c.Writer == nil || c.Writer.Header().Get(ResponseTimeHeader) != "" {
+		return
+	}
+	if startVal, exists := c.Get(RequestStartTimeKey); exists {
+		if startTime, ok := startVal.(time.Time); ok {
+			duration := time.Since(startTime)
+			c.Header(ResponseTimeHeader, duration.String())
+		}
+	}
+}
 
 // Envelope Structs
 type SuccessResponse struct {
@@ -29,6 +47,7 @@ type ErrorDetail struct {
 
 // Success Helpers
 func OK(c *gin.Context, data interface{}) {
+	setResponseTimeHeader(c)
 	c.JSON(http.StatusOK, SuccessResponse{
 		Success: true,
 		Data:    data,
@@ -36,6 +55,7 @@ func OK(c *gin.Context, data interface{}) {
 }
 
 func Created(c *gin.Context, data interface{}) {
+	setResponseTimeHeader(c)
 	c.JSON(http.StatusCreated, SuccessResponse{
 		Success: true,
 		Data:    data,
@@ -43,6 +63,7 @@ func Created(c *gin.Context, data interface{}) {
 }
 
 func SuccessWithMeta(c *gin.Context, statusCode int, data interface{}, meta interface{}) {
+	setResponseTimeHeader(c)
 	c.JSON(statusCode, SuccessResponse{
 		Success: true,
 		Data:    data,
@@ -51,11 +72,13 @@ func SuccessWithMeta(c *gin.Context, statusCode int, data interface{}, meta inte
 }
 
 func NoContent(c *gin.Context) {
+	setResponseTimeHeader(c)
 	c.Status(http.StatusNoContent)
 }
 
 // Error Handler
 func Error(c *gin.Context, err error) {
+	setResponseTimeHeader(c)
 	var domainErr *pkgerrors.DomainError
 	var valErr *pkgerrors.ValidationError
 	var infraErr *pkgerrors.InfrastructureError
@@ -124,6 +147,8 @@ func mapDomainCodeToStatus(code string) int {
 		return http.StatusBadRequest
 	case pkgerrors.CodeRateLimitExceeded:
 		return http.StatusTooManyRequests
+	case pkgerrors.CodeBusinessRuleViolation:
+		return http.StatusUnprocessableEntity
 	default:
 		// Default untung domain error adalah 400 Bad Request
 		return http.StatusBadRequest

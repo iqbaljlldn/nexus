@@ -80,6 +80,28 @@ func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) (uuid.UUID, erro
 	return id, err
 }
 
+const getEveryoneRoleByWorkspaceID = `-- name: GetEveryoneRoleByWorkspaceID :one
+SELECT id, workspace_id, name, permission_bitmask, position, is_everyone, created_at, updated_at
+FROM roles
+WHERE workspace_id = $1 AND is_everyone = true
+`
+
+func (q *Queries) GetEveryoneRoleByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) (Role, error) {
+	row := q.db.QueryRowContext(ctx, getEveryoneRoleByWorkspaceID, workspaceID)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.PermissionBitmask,
+		&i.Position,
+		&i.IsEveryone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRoleByID = `-- name: GetRoleByID :one
 SELECT id, workspace_id, name, permission_bitmask, position, is_everyone, created_at, updated_at
 FROM roles

@@ -12,4 +12,5 @@ type RoleRepository interface {
 	Create(ctx context.Context, role *Role) error
 	// Assign creates a member-role assignment.
 	Assign(ctx context.Context, memberID, roleID uuid.UUID) error
+	GetEveryoneRole(ctx context.Context, workspaceID uuid.UUID) (*Role, error)
 }

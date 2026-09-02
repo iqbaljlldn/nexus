@@ -122,10 +122,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `InviteService.Create` (max_uses, expires_at nullable)
-- [ ] Implementasi `InviteService.Redeem` — cek existing membership dulu sebelum insert (idempotent by design, bukan hanya mengandalkan `Idempotency-Key` header)
-- [ ] Validasi `expires_at`/`max_uses` sebelum redeem → error `BUSINESS_RULE_VIOLATION` sesuai kondisi
-- [ ] Integration test: redeem ganda, redeem kedaluwarsa, redeem max_uses tercapai
+- [x] Implementasi `InviteService.Create` (max_uses, expires_at nullable)
+- [x] Implementasi `InviteService.Redeem` — cek existing membership dulu sebelum insert (idempotent by design, bukan hanya mengandalkan `Idempotency-Key` header)
+- [x] Validasi `expires_at`/`max_uses` sebelum redeem → error `BUSINESS_RULE_VIOLATION` sesuai kondisi
+- [x] Integration test: redeem ganda, redeem kedaluwarsa, redeem max_uses tercapai
 
 #### Task 3.3.2: Handler — `POST /workspaces/{id}/invites`, `POST /invites/{code}/redeem`
 

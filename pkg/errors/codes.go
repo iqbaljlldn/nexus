@@ -22,9 +22,10 @@ const (
 	CodeDatabaseConnectionError = "DATABASE_CONNECTION_ERROR"
 
 	// Internal Errors
-	CodeInternalServerError  = "INTERNAL_SERVER_ERROR"
-	CodeNetworkError         = "NETWORK_ERROR"
-	CodeInvalidConfiguration = "INVALID_CONFIGURATION"
-	CodeUnexpectedError      = "UNEXPECTED_ERROR"
-	CodeTimeoutError         = "TIMEOUT_ERROR"
+	CodeInternalServerError   = "INTERNAL_SERVER_ERROR"
+	CodeBusinessRuleViolation = "BUSINESS_RULE_VIOLATION"
+	CodeNetworkError          = "NETWORK_ERROR"
+	CodeInvalidConfiguration  = "INVALID_CONFIGURATION"
+	CodeUnexpectedError       = "UNEXPECTED_ERROR"
+	CodeTimeoutError          = "TIMEOUT_ERROR"
 )

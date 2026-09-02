@@ -22,6 +22,7 @@ type MemberPort interface {
 	// Create persists a new member. The DB-generated ID is set on the
 	// member pointer upon success.
 	Create(ctx context.Context, member *memberDomain.Member) error
+	GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*memberDomain.Member, error)
 }
 
 // RolePort is the interface the workspace application layer uses to
@@ -32,4 +33,5 @@ type RolePort interface {
 	Create(ctx context.Context, role *roleDomain.Role) error
 	// Assign creates a member-role assignment.
 	Assign(ctx context.Context, memberID, roleID uuid.UUID) error
+	GetEveryoneRole(ctx context.Context, workspaceID uuid.UUID) (*roleDomain.Role, error)
 }

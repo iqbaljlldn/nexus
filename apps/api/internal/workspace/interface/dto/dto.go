@@ -1,6 +1,9 @@
 package dto
 
 import (
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/workspace/domain"
 )
 
@@ -25,4 +28,10 @@ type PaginationMeta struct {
 	Limit   uint    `json:"limit"`
 	Cursor  *string `json:"next_cursor"`
 	HasMore bool    `json:"has_more"`
+}
+
+type CreateInviteReq struct {
+	WorkspaceID uuid.UUID
+	MaxUses     *int
+	ExpiresAt   *time.Time
 }

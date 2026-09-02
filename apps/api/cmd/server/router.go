@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	_ "github.com/iqbaljlldn/nexus/apps/api/docs"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/platform/middleware"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -19,6 +20,8 @@ func NewRouter(
 	r := gin.New()
 
 	api := r.Group("/api/v1")
+
+	api.Use(middleware.RequestDurationMiddleware)
 
 	for _, router := range routers {
 		router.RegisterRoutes(api)

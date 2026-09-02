@@ -43,6 +43,14 @@ func (m *MockMemberPort) Create(ctx context.Context, member *memberDomain.Member
 	return args.Error(0)
 }
 
+func (m *MockMemberPort) GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*memberDomain.Member, error) {
+	args := m.Called(ctx, workspaceID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*memberDomain.Member), args.Error(1)
+}
+
 type MockRolePort struct {
 	mock.Mock
 }
@@ -59,6 +67,14 @@ func (m *MockRolePort) Create(ctx context.Context, role *roleDomain.Role) error 
 func (m *MockRolePort) Assign(ctx context.Context, memberID, roleID uuid.UUID) error {
 	args := m.Called(ctx, memberID, roleID)
 	return args.Error(0)
+}
+
+func (m *MockRolePort) GetEveryoneRole(ctx context.Context, workspaceID uuid.UUID) (*roleDomain.Role, error) {
+	args := m.Called(ctx, workspaceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*roleDomain.Role), args.Error(1)
 }
 
 // FakeTxManager executes fn synchronously without a real DB transaction,

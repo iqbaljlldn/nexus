@@ -50,3 +50,23 @@ func (r *PostgresRoleRepository) Assign(ctx context.Context, memberID, roleID uu
 
 	return err
 }
+
+func (r *PostgresRoleRepository) GetEveryoneRole(ctx context.Context, workspaceID uuid.UUID) (*domain.Role, error) {
+	dbtx := txcontext.ExtractDBTX(ctx, r.db)
+
+	dbRole, err := New(dbtx).GetEveryoneRoleByWorkspaceID(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.Role{
+		ID:                dbRole.ID,
+		WorkspaceID:       dbRole.WorkspaceID,
+		Name:              dbRole.Name,
+		PermissionBitmask: dbRole.PermissionBitmask,
+		Position:          dbRole.Position,
+		IsEveryone:        dbRole.IsEveryone,
+		CreatedAt:         dbRole.CreatedAt,
+		UpdatedAt:         dbRole.UpdatedAt,
+	}, nil
+}

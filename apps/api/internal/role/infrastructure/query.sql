@@ -34,3 +34,8 @@ INSERT INTO member_role_assignments (member_id, role_id) VALUES ($1, $2) RETURNI
 -- name: RemoveRoleFromMember :one
 DELETE FROM member_role_assignments WHERE member_id = $1 AND role_id = $2 RETURNING *;
 
+-- name: GetEveryoneRoleByWorkspaceID :one
+SELECT *
+FROM roles
+WHERE workspace_id = $1 AND is_everyone = true;
+
