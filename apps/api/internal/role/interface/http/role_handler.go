@@ -113,7 +113,8 @@ func (h *RoleHandler) AssignRoles(c *gin.Context) {
 	// Currently any authenticated member can assign roles; this MUST be gated by permission
 	// resolver before merging to production.
 
-	if err := h.roleService.AssignRoles(c.Request.Context(), workspaceID, memberID, req.RoleIDs); err != nil {
+	userID, _ := contextutil.UserID(c.Request.Context()) // already checked above
+	if err := h.roleService.AssignRoles(c.Request.Context(), workspaceID, memberID, userID, req.RoleIDs); err != nil {
 		httpresponse.Error(c, err)
 		return
 	}

@@ -90,6 +90,46 @@ func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) (uuid.UUID, erro
 	return id, err
 }
 
+const findMemberRolesSortedByPosition = `-- name: FindMemberRolesSortedByPosition :many
+SELECT r.id, r.workspace_id, r.name, r.permission_bitmask, r.position, r.is_everyone, r.created_at, r.updated_at 
+FROM roles r
+JOIN member_role_assignments mra ON r.id = mra.role_id
+WHERE mra.member_id = $1
+ORDER BY r.position DESC
+`
+
+func (q *Queries) FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]Role, error) {
+	rows, err := q.db.QueryContext(ctx, findMemberRolesSortedByPosition, memberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Role
+	for rows.Next() {
+		var i Role
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Name,
+			&i.PermissionBitmask,
+			&i.Position,
+			&i.IsEveryone,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEveryoneRoleByWorkspaceID = `-- name: GetEveryoneRoleByWorkspaceID :one
 SELECT id, workspace_id, name, permission_bitmask, position, is_everyone, created_at, updated_at
 FROM roles

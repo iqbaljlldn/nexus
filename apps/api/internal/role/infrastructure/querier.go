@@ -15,6 +15,7 @@ type Querier interface {
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
 	DeleteAllRoleAssignmentsByMember(ctx context.Context, memberID uuid.UUID) error
 	DeleteRole(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]Role, error)
 	GetEveryoneRoleByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) (Role, error)
 	GetMaxRolePositionByWorkspace(ctx context.Context, workspaceID uuid.UUID) (int32, error)
 	GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error)

@@ -68,6 +68,14 @@ func (m *MockRoleRepository) DeleteAssignmentsByMember(ctx context.Context, memb
 	return args.Error(0)
 }
 
+func (m *MockRoleRepository) FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]*roleDomain.Role, error) {
+	args := m.Called(ctx, memberID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*roleDomain.Role), args.Error(1)
+}
+
 // FakeTxManager executes fn synchronously without a real DB transaction.
 type FakeTxManager struct {
 	shouldFail bool
@@ -88,7 +96,7 @@ func TestRoleService_Create_Success_AutoPosition(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 
@@ -112,7 +120,7 @@ func TestRoleService_Create_Success_ExplicitPosition(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 	pos := int32(5)
@@ -132,7 +140,7 @@ func TestRoleService_Create_Success_ExplicitPosition(t *testing.T) {
 
 func TestRoleService_Create_EmptyName(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := application.NewRoleService(nil, &FakeTxManager{}, log)
+	svc := application.NewRoleService(nil, &FakeTxManager{}, nil, log)
 
 	role, err := svc.Create(context.Background(), uuid.New(), "", 0, nil)
 
@@ -145,7 +153,7 @@ func TestRoleService_Create_EmptyName(t *testing.T) {
 
 func TestRoleService_Create_NameTooLong(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := application.NewRoleService(nil, &FakeTxManager{}, log)
+	svc := application.NewRoleService(nil, &FakeTxManager{}, nil, log)
 
 	longName := ""
 	for i := 0; i < 101; i++ {
@@ -166,7 +174,7 @@ func TestRoleService_Create_RepoFails(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	mockRepo.On("GetMaxPosition", mock.Anything, mock.Anything).Return(int32(0), nil)
 	mockRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
@@ -185,10 +193,11 @@ func TestRoleService_AssignRoles_Success(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 	memberID := uuid.New()
+	userID := uuid.New()
 	everyoneRoleID := uuid.New()
 	customRoleID := uuid.New()
 
@@ -208,7 +217,7 @@ func TestRoleService_AssignRoles_Success(t *testing.T) {
 	mockRepo.On("DeleteAssignmentsByMember", mock.Anything, memberID).Return(nil)
 	mockRepo.On("Assign", mock.Anything, memberID, mock.AnythingOfType("uuid.UUID")).Return(nil)
 
-	err := svc.AssignRoles(context.Background(), workspaceID, memberID, []uuid.UUID{customRoleID})
+	err := svc.AssignRoles(context.Background(), workspaceID, memberID, userID, []uuid.UUID{customRoleID})
 
 	assert.NoError(t, err)
 
@@ -229,10 +238,11 @@ func TestRoleService_AssignRoles_EveryoneAlwaysIncluded(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 	memberID := uuid.New()
+	userID := uuid.New()
 	everyoneRoleID := uuid.New()
 
 	everyoneRole := &roleDomain.Role{
@@ -246,7 +256,7 @@ func TestRoleService_AssignRoles_EveryoneAlwaysIncluded(t *testing.T) {
 	mockRepo.On("Assign", mock.Anything, memberID, everyoneRoleID).Return(nil)
 
 	// Pass empty slice — @everyone should still be assigned
-	err := svc.AssignRoles(context.Background(), workspaceID, memberID, []uuid.UUID{})
+	err := svc.AssignRoles(context.Background(), workspaceID, memberID, userID, []uuid.UUID{})
 
 	assert.NoError(t, err)
 
@@ -260,10 +270,11 @@ func TestRoleService_AssignRoles_RoleNotFound(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 	memberID := uuid.New()
+	userID := uuid.New()
 	nonExistentRoleID := uuid.New()
 
 	everyoneRole := &roleDomain.Role{
@@ -275,7 +286,7 @@ func TestRoleService_AssignRoles_RoleNotFound(t *testing.T) {
 	mockRepo.On("GetEveryoneRole", mock.Anything, workspaceID).Return(everyoneRole, nil)
 	mockRepo.On("GetByID", mock.Anything, nonExistentRoleID).Return(nil, errors.New("not found"))
 
-	err := svc.AssignRoles(context.Background(), workspaceID, memberID, []uuid.UUID{nonExistentRoleID})
+	err := svc.AssignRoles(context.Background(), workspaceID, memberID, userID, []uuid.UUID{nonExistentRoleID})
 
 	assert.Error(t, err)
 	var domainErr *pkgerrors.DomainError
@@ -292,11 +303,12 @@ func TestRoleService_AssignRoles_RoleWrongWorkspace(t *testing.T) {
 	mockRepo := new(MockRoleRepository)
 	txManager := &FakeTxManager{}
 
-	svc := application.NewRoleService(mockRepo, txManager, log)
+	svc := application.NewRoleService(mockRepo, txManager, nil, log)
 
 	workspaceID := uuid.New()
 	otherWorkspaceID := uuid.New()
 	memberID := uuid.New()
+	userID := uuid.New()
 	foreignRoleID := uuid.New()
 
 	everyoneRole := &roleDomain.Role{
@@ -313,7 +325,7 @@ func TestRoleService_AssignRoles_RoleWrongWorkspace(t *testing.T) {
 	mockRepo.On("GetEveryoneRole", mock.Anything, workspaceID).Return(everyoneRole, nil)
 	mockRepo.On("GetByID", mock.Anything, foreignRoleID).Return(foreignRole, nil)
 
-	err := svc.AssignRoles(context.Background(), workspaceID, memberID, []uuid.UUID{foreignRoleID})
+	err := svc.AssignRoles(context.Background(), workspaceID, memberID, userID, []uuid.UUID{foreignRoleID})
 
 	assert.Error(t, err)
 	var domainErr *pkgerrors.DomainError

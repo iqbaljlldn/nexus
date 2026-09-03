@@ -34,4 +34,18 @@ type RolePort interface {
 	// Assign creates a member-role assignment.
 	Assign(ctx context.Context, memberID, roleID uuid.UUID) error
 	GetEveryoneRole(ctx context.Context, workspaceID uuid.UUID) (*roleDomain.Role, error)
+	FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]*roleDomain.Role, error)
+}
+
+// ChannelOverride represents a channel-specific permission override.
+type ChannelOverride struct {
+	Allow roleDomain.PermissionFlag
+	Deny  roleDomain.PermissionFlag
+}
+
+// ChannelOverridePort is the interface the workspace application layer uses
+// to fetch channel overrides from the channel infrastructure.
+type ChannelOverridePort interface {
+	FindMemberOverride(ctx context.Context, channelID, userID uuid.UUID) (*ChannelOverride, bool, error)
+	FindRoleOverride(ctx context.Context, channelID, roleID uuid.UUID) (*ChannelOverride, bool, error)
 }

@@ -77,6 +77,14 @@ func (m *MockRolePort) GetEveryoneRole(ctx context.Context, workspaceID uuid.UUI
 	return args.Get(0).(*roleDomain.Role), args.Error(1)
 }
 
+func (m *MockRolePort) FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]*roleDomain.Role, error) {
+	args := m.Called(ctx, memberID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*roleDomain.Role), args.Error(1)
+}
+
 // FakeTxManager executes fn synchronously without a real DB transaction,
 // suitable for unit testing the service orchestration logic.
 type FakeTxManager struct {

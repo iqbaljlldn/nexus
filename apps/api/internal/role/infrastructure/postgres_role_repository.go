@@ -118,3 +118,27 @@ func (r *PostgresRoleRepository) DeleteAssignmentsByMember(ctx context.Context, 
 	dbtx := txcontext.ExtractDBTX(ctx, r.db)
 	return New(dbtx).DeleteAllRoleAssignmentsByMember(ctx, memberID)
 }
+
+func (r *PostgresRoleRepository) FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]*domain.Role, error) {
+	dbtx := txcontext.ExtractDBTX(ctx, r.db)
+
+	rows, err := New(dbtx).FindMemberRolesSortedByPosition(ctx, memberID)
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]*domain.Role, len(rows))
+	for i, row := range rows {
+		roles[i] = &domain.Role{
+			ID:                row.ID,
+			WorkspaceID:       row.WorkspaceID,
+			Name:              row.Name,
+			PermissionBitmask: row.PermissionBitmask,
+			Position:          row.Position,
+			IsEveryone:        row.IsEveryone,
+			CreatedAt:         row.CreatedAt,
+			UpdatedAt:         row.UpdatedAt,
+		}
+	}
+	return roles, nil
+}

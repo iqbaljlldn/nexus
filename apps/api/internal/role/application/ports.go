@@ -18,3 +18,9 @@ type TransactionManager interface {
 type MemberPort interface {
 	GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*memberDomain.Member, error)
 }
+
+// PermissionCacheInvalidator is the interface used to invalidate cached permissions
+// when role assignments change.
+type PermissionCacheInvalidator interface {
+	InvalidateUserPermissions(ctx context.Context, workspaceID, userID uuid.UUID) error
+}

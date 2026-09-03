@@ -51,3 +51,11 @@ WHERE member_id = $1;
 -- name: DeleteAllRoleAssignmentsByMember :exec
 DELETE FROM member_role_assignments
 WHERE member_id = $1;
+
+-- name: FindMemberRolesSortedByPosition :many
+SELECT r.* 
+FROM roles r
+JOIN member_role_assignments mra ON r.id = mra.role_id
+WHERE mra.member_id = $1
+ORDER BY r.position DESC;
+

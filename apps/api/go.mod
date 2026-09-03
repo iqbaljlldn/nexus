@@ -3,11 +3,12 @@ module github.com/iqbaljlldn/nexus/apps/api
 go 1.26.6
 
 require (
+	github.com/alicebob/miniredis/v2 v2.39.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
-	github.com/iqbaljlldn/nexus/pkg v0.0.0-20260819121306-048b64201110
+	github.com/iqbaljlldn/nexus/pkg v0.0.0-20260902052348-54ba1c9456b0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/sqlc-dev/pqtype v0.3.0
@@ -60,6 +61,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.8.0 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect

@@ -12,20 +12,23 @@ import (
 )
 
 type RoleService struct {
-	roleRepo  roleDomain.RoleRepository
-	txManager TransactionManager
-	log       *zap.Logger
+	roleRepo    roleDomain.RoleRepository
+	txManager   TransactionManager
+	invalidator PermissionCacheInvalidator
+	log         *zap.Logger
 }
 
 func NewRoleService(
 	roleRepo roleDomain.RoleRepository,
 	txManager TransactionManager,
+	invalidator PermissionCacheInvalidator,
 	log *zap.Logger,
 ) *RoleService {
 	return &RoleService{
-		roleRepo:  roleRepo,
-		txManager: txManager,
-		log:       log,
+		roleRepo:    roleRepo,
+		txManager:   txManager,
+		invalidator: invalidator,
+		log:         log,
 	}
 }
 
@@ -84,7 +87,7 @@ func (s *RoleService) Create(ctx context.Context, workspaceID uuid.UUID, name st
 // AssignRoles replaces all role assignments for a member with the given roleIDs.
 // The @everyone role is always included — it cannot be removed from a member.
 // All provided roleIDs must belong to the same workspace as the member.
-func (s *RoleService) AssignRoles(ctx context.Context, workspaceID uuid.UUID, memberID uuid.UUID, roleIDs []uuid.UUID) error {
+func (s *RoleService) AssignRoles(ctx context.Context, workspaceID uuid.UUID, memberID uuid.UUID, userID uuid.UUID, roleIDs []uuid.UUID) error {
 	log := logger.FromContext(ctx, s.log)
 
 	// Fetch @everyone role to ensure it's always included
@@ -149,6 +152,18 @@ func (s *RoleService) AssignRoles(ctx context.Context, workspaceID uuid.UUID, me
 
 	if err != nil {
 		return err
+	}
+
+	// Trigger cache invalidation for this member's permissions
+	if s.invalidator != nil {
+		if err := s.invalidator.InvalidateUserPermissions(ctx, workspaceID, userID); err != nil {
+			// Log error but do not fail the overall request, as the DB operation succeeded
+			log.Error("failed to invalidate permission cache after role assignment",
+				zap.Error(err),
+				zap.String("workspace_id", workspaceID.String()),
+				zap.String("user_id", userID.String()),
+			)
+		}
 	}
 
 	log.Info("roles assigned to member",

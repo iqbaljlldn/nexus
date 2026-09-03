@@ -213,10 +213,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `internal/workspace/application/permission_resolver.go` sesuai pseudocode LLD §2.1
-- [ ] Query pendukung: `FindMemberOverride`, `FindRoleOverride`, `FindMemberRolesSortedByPosition`, `FindEveryoneRole`
-- [ ] Unit test skenario (a), (b), (c) di atas — minimal 3 test case eksplisit menguji urutan resolusi
-- [ ] Unit test tambahan: member dengan banyak role, role tertinggi (`position` terbesar) menang untuk role default
+- [x] Implementasi `internal/workspace/application/permission_resolver.go` sesuai pseudocode LLD §2.1
+- [x] Query pendukung: `FindMemberOverride`, `FindRoleOverride`, `FindMemberRolesSortedByPosition`, `FindEveryoneRole`
+- [x] Unit test skenario (a), (b), (c) di atas — minimal 3 test case eksplisit menguji urutan resolusi
+- [x] Unit test tambahan: member dengan banyak role, role tertinggi (`position` terbesar) menang untuk role default
 
 #### Task 3.5.2: Cache Permission (Redis) + Invalidation
 
@@ -229,10 +229,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: **Should** (dapat digeser ke Sprint 4 tanpa mengorbankan Sprint Goal Sprint 3 — Permission Resolver tanpa cache tetap fungsional benar, hanya lebih lambat)
 
 **Subtask & Checklist**:
-- [ ] Wrap `PermissionResolver.Resolve` dengan cache-aside pattern (Redis)
-- [ ] Implementasi `SCAN`-based invalidation (RULES.md §5 — **JANGAN** pakai `KEYS`)
-- [ ] Trigger invalidation di `RoleService.UpdatePermission`, `RoleService.AssignRole`
-- [ ] Test: ubah role → cache invalidated → resolusi berikutnya benar
+- [x] Wrap `PermissionResolver.Resolve` dengan cache-aside pattern (Redis)
+- [x] Implementasi `SCAN`-based invalidation (RULES.md §5 — **JANGAN** pakai `KEYS`)
+- [x] Trigger invalidation di `RoleService.UpdatePermission`, `RoleService.AssignRole`
+- [x] Test: ubah role → cache invalidated → resolusi berikutnya benar
 
 ---
 

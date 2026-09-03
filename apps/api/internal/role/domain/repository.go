@@ -24,4 +24,6 @@ type RoleRepository interface {
 	// DeleteAssignmentsByMember removes all role assignments for a member.
 	// Used for replace-all semantics on PATCH role assignment.
 	DeleteAssignmentsByMember(ctx context.Context, memberID uuid.UUID) error
+	// FindMemberRolesSortedByPosition returns a member's roles, sorted by position descending.
+	FindMemberRolesSortedByPosition(ctx context.Context, memberID uuid.UUID) ([]*Role, error)
 }
