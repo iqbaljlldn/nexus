@@ -361,10 +361,10 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Buat struktur folder sesuai Frontend Architecture §2
-- [ ] Install Pinia, `@tanstack/vue-query`, TailwindCSS, VueUse, Floating UI, `vue-virtual-scroller`
-- [ ] Setup `nuxt.config.ts` dasar (modules terdaftar)
-- [ ] Verifikasi dev server jalan tanpa error
+- [x] Buat struktur folder sesuai Frontend Architecture §2
+- [x] Install Pinia, `@tanstack/vue-query`, TailwindCSS, VueUse, Floating UI, `vue-virtual-scroller`
+- [x] Setup `nuxt.config.ts` dasar (modules terdaftar)
+- [x] Verifikasi dev server jalan tanpa error
 
 #### Task 3.1.2: API Client Plugin dengan Interceptor
 
@@ -377,9 +377,9 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `plugins/api-client.ts` sesuai §4.1
-- [ ] Implementasi `useAuthRefresh()` sesuai §4.2 (CSRF header dari cookie)
-- [ ] Unit test 3 skenario di atas
+- [x] Implementasi `plugins/api-client.ts` sesuai §4.1
+- [x] Implementasi `useAuthRefresh()` sesuai §4.2 (CSRF header dari cookie)
+- [x] Unit test 3 skenario di atas
 
 #### Task 3.1.3: Pinia Store — `session.ts`
 
@@ -392,8 +392,8 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `stores/session.ts` (`accessToken`, `user`, `isAuthenticated` getter)
-- [ ] Verifikasi manual: tidak ada token tersimpan di localStorage/sessionStorage (DevTools Application tab)
+- [x] Implementasi `stores/session.ts` (`accessToken`, `user`, `isAuthenticated` getter)
+- [x] Verifikasi manual: tidak ada token tersimpan di localStorage/sessionStorage (DevTools Application tab)
 
 ---
 
