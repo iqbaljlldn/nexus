@@ -64,7 +64,7 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 	workspaceHandler := http3.NewWorkspaceHandler(workspaceService, inviteService, string2)
 	transactionManager := provideRoleTxManager(postgresTransactionManager)
 	channelOverridePort := infrastructure2.NewPostgresChannelOverrideRepository(sqlDB)
-	permissionResolver := application3.NewPermissionResolver(channelOverridePort, rolePort)
+	permissionResolver := application3.NewPermissionResolver(workspaceRepository, memberPort, channelOverridePort, rolePort)
 	cachedPermissionResolver := application3.NewCachedPermissionResolver(permissionResolver, redisClient, log)
 	permissionCacheInvalidator := provideRoleCacheInvalidator(cachedPermissionResolver)
 	roleService := application4.NewRoleService(roleRepository, transactionManager, permissionCacheInvalidator, log)

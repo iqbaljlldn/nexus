@@ -7,8 +7,10 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	memberDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
 	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/workspace/application"
+	wpDomain "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/domain"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -36,15 +38,22 @@ func TestCachedPermissionResolver_Resolve(t *testing.T) {
 	log := zaptest.NewLogger(t)
 	mockOverride := new(MockChannelOverridePort)
 	mockRole := new(MockRolePort2)
-	baseResolver := application.NewPermissionResolver(mockOverride, mockRole)
+	mockWorkspace := new(MockPermResolverWorkspaceRepo)
+	mockMember := new(MockPermResolverMemberPort)
+	baseResolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 	cachedResolver := application.NewCachedPermissionResolver(baseResolver, rdb, log)
 
 	userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+	memberID := uuid.New()
 	reqFlag := roleDomain.PermSendMessages
 
+	// Setup standard mock returns to avoid bypass
+	mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+	mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
 	// 1. Initial request - should call base resolver (cache miss)
-	mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil).Once()
-	mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{}, nil).Once()
+	mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil).Once()
+	mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{}, nil).Once()
 	mockRole.On("GetEveryoneRole", mock.Anything, workspaceID).Return(&roleDomain.Role{
 		PermissionBitmask: int64(reqFlag),
 	}, nil).Once()
@@ -55,9 +64,10 @@ func TestCachedPermissionResolver_Resolve(t *testing.T) {
 
 	mockOverride.AssertExpectations(t)
 	mockRole.AssertExpectations(t)
+	mockWorkspace.AssertExpectations(t)
+	mockMember.AssertExpectations(t)
 
 	// 2. Second request - should NOT call base resolver (cache hit)
-	// No new mock expectations are set. If base is called, mock will fail or panic.
 	allowedCached, err := cachedResolver.Resolve(context.Background(), userID, workspaceID, channelID, reqFlag)
 	assert.NoError(t, err)
 	assert.True(t, allowedCached)
@@ -66,8 +76,10 @@ func TestCachedPermissionResolver_Resolve(t *testing.T) {
 	mr.FastForward(61 * time.Second)
 
 	// 4. Third request - should call base resolver again (cache expired)
-	mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil).Once()
-	mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{}, nil).Once()
+	mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil).Once()
+	mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil).Once()
+	mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil).Once()
+	mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{}, nil).Once()
 	mockRole.On("GetEveryoneRole", mock.Anything, workspaceID).Return(&roleDomain.Role{
 		PermissionBitmask: int64(reqFlag),
 	}, nil).Once()

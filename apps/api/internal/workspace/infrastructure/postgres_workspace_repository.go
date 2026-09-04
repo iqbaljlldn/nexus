@@ -39,6 +39,27 @@ func (r *PostgresWorkspaceRepository) Create(ctx context.Context, workspace *dom
 	return nil
 }
 
+func (r *PostgresWorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Workspace, error) {
+	dbtx := txcontext.ExtractDBTX(ctx, r.db)
+
+	dbWorkspace, err := New(dbtx).GetWorkspaceByID(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrWorkspaceNotFound
+		}
+		return nil, err
+	}
+
+	return &domain.Workspace{
+		ID:        dbWorkspace.ID,
+		OwnerID:   dbWorkspace.OwnerID,
+		Name:      dbWorkspace.Name,
+		IconURL:   dbWorkspace.IconUrl.String,
+		CreatedAt: dbWorkspace.CreatedAt,
+		UpdatedAt: dbWorkspace.UpdatedAt,
+	}, nil
+}
+
 func (r *PostgresWorkspaceRepository) ListByNewest(ctx context.Context, userID uuid.UUID, search string, cursor *pagination.Cursor, limit uint) ([]domain.Workspace, error) {
 	dbtx := txcontext.ExtractDBTX(ctx, r.db)
 

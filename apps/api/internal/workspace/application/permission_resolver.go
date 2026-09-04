@@ -5,15 +5,25 @@ import (
 
 	"github.com/google/uuid"
 	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
+	wpDomain "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/domain"
 )
 
 type PermissionResolver struct {
+	workspaceRepo       wpDomain.WorkspaceRepository
+	memberPort          MemberPort
 	channelOverrideRepo ChannelOverridePort
 	roleRepo            RolePort
 }
 
-func NewPermissionResolver(channelOverrideRepo ChannelOverridePort, roleRepo RolePort) *PermissionResolver {
+func NewPermissionResolver(
+	workspaceRepo wpDomain.WorkspaceRepository,
+	memberPort MemberPort,
+	channelOverrideRepo ChannelOverridePort,
+	roleRepo RolePort,
+) *PermissionResolver {
 	return &PermissionResolver{
+		workspaceRepo:       workspaceRepo,
+		memberPort:          memberPort,
 		channelOverrideRepo: channelOverrideRepo,
 		roleRepo:            roleRepo,
 	}
@@ -26,8 +36,24 @@ func NewPermissionResolver(channelOverrideRepo ChannelOverridePort, roleRepo Rol
 // 3. Role default (iterated highest position to lowest)
 // 4. @everyone role fallback
 func (r *PermissionResolver) Resolve(ctx context.Context, userID, workspaceID, channelID uuid.UUID, required roleDomain.PermissionFlag) (bool, error) {
+	// Pengecualian: Jika Member adalah Owner dari Workspace, langsung return true (LLD 2.1)
+	workspace, err := r.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	if workspace.OwnerID == userID {
+		return true, nil
+	}
+
+	// Dapatkan member ID
+	member, err := r.memberPort.GetByWorkspaceAndUser(ctx, workspaceID, userID)
+	if err != nil {
+		return false, err
+	}
+	memberID := member.ID
+
 	// 1. Channel-specific MEMBER override (prioritas tertinggi)
-	override, ok, err := r.channelOverrideRepo.FindMemberOverride(ctx, channelID, userID)
+	override, ok, err := r.channelOverrideRepo.FindMemberOverride(ctx, channelID, memberID)
 	if err != nil {
 		return false, err
 	}
@@ -42,7 +68,7 @@ func (r *PermissionResolver) Resolve(ctx context.Context, userID, workspaceID, c
 	}
 
 	// Fetch member roles (sorted by position DESC) for step 2 and 3
-	roles, err := r.roleRepo.FindMemberRolesSortedByPosition(ctx, userID)
+	roles, err := r.roleRepo.FindMemberRolesSortedByPosition(ctx, memberID)
 	if err != nil {
 		return false, err
 	}

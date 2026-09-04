@@ -296,14 +296,14 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis test: User A register & login → create workspace
-- [ ] User A create invite → User B register & login → redeem invite
-- [ ] User A create role "Restricted" (tanpa `SEND_MESSAGES`), assign ke User B
-- [ ] User A create channel privat, set permission override deny `SEND_MESSAGES`/read untuk role "Restricted"
-- [ ] Verifikasi: User B mencoba `GET /channels/{id}/messages` atau kirim pesan → `403 FORBIDDEN`
-- [ ] Verifikasi: User A (Owner, permission penuh) tetap dapat mengakses channel tersebut
-- [ ] Jalankan 3x berturut memastikan tidak flaky, pastikan CI hijau
-- [ ] Update `docs/AGENTS.md` §7 — tandai Release 1 selesai, Sprint aktif berpindah ke Sprint 4 (Release 2)
+- [x] Tulis test: User A register & login → create workspace
+- [x] User A create invite → User B register & login → redeem invite
+- [x] User A create role "Restricted" (tanpa `SEND_MESSAGES`), assign ke User B
+- [x] User A create channel privat, set permission override deny `SEND_MESSAGES`/read untuk role "Restricted"
+- [x] Verifikasi: User B mencoba `GET /channels/{id}/messages` atau kirim pesan → `403 FORBIDDEN`
+- [x] Verifikasi: User A (Owner, permission penuh) tetap dapat mengakses channel tersebut
+- [x] Jalankan 3x berturut memastikan tidak flaky, pastikan CI hijau
+- [x] Update `docs/AGENTS.md` §7 — tandai Release 1 selesai, Sprint aktif berpindah ke Sprint 4 (Release 2)
 
 ---
 

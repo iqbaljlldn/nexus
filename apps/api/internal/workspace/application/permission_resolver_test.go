@@ -5,13 +5,60 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	memberDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
 	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/workspace/application"
+	wpDomain "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/domain"
+	"github.com/iqbaljlldn/nexus/pkg/pagination"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 // --- Mocks ---
+
+type MockPermResolverWorkspaceRepo struct {
+	mock.Mock
+}
+
+func (m *MockPermResolverWorkspaceRepo) GetByID(ctx context.Context, id uuid.UUID) (*wpDomain.Workspace, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*wpDomain.Workspace), args.Error(1)
+}
+
+func (m *MockPermResolverWorkspaceRepo) Create(ctx context.Context, workspace *wpDomain.Workspace) error {
+	return nil
+}
+
+func (m *MockPermResolverWorkspaceRepo) ListByNewest(ctx context.Context, userID uuid.UUID, search string, cursor *pagination.Cursor, limit uint) ([]wpDomain.Workspace, error) {
+	return nil, nil
+}
+
+func (m *MockPermResolverWorkspaceRepo) ListByNameAsc(ctx context.Context, userID uuid.UUID, search string, cursor *pagination.Cursor, limit uint) ([]wpDomain.Workspace, error) {
+	return nil, nil
+}
+
+func (m *MockPermResolverWorkspaceRepo) CountByUserID(ctx context.Context, userID uuid.UUID, search string) (uint64, error) {
+	return 0, nil
+}
+
+type MockPermResolverMemberPort struct {
+	mock.Mock
+}
+
+func (m *MockPermResolverMemberPort) Create(ctx context.Context, member *memberDomain.Member) error {
+	return nil
+}
+
+func (m *MockPermResolverMemberPort) GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*memberDomain.Member, error) {
+	args := m.Called(ctx, workspaceID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*memberDomain.Member), args.Error(1)
+}
 
 type MockChannelOverridePort struct {
 	mock.Mock
@@ -66,16 +113,37 @@ func (m *MockRolePort2) GetEveryoneRole(ctx context.Context, workspaceID uuid.UU
 // --- Tests ---
 
 func TestPermissionResolver_Resolve(t *testing.T) {
-	// (c) tidak ada override sama sekali → fallback ke @everyone (Allow)
-	t.Run("Fallback to @everyone - Allow", func(t *testing.T) {
+	t.Run("Owner bypasses everything", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil)
-		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{}, nil)
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: userID}, nil)
+
+		allowed, err := resolver.Resolve(context.Background(), userID, workspaceID, channelID, roleDomain.PermManageChannels)
+		assert.NoError(t, err)
+		assert.True(t, allowed)
+	})
+
+	t.Run("Fallback to @everyone - Allow", func(t *testing.T) {
+		mockOverride := new(MockChannelOverridePort)
+		mockRole := new(MockRolePort2)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
+
+		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
+
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil)
+		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{}, nil)
 		mockRole.On("GetEveryoneRole", mock.Anything, workspaceID).Return(&roleDomain.Role{
 			PermissionBitmask: int64(roleDomain.PermSendMessages),
 		}, nil)
@@ -85,16 +153,21 @@ func TestPermissionResolver_Resolve(t *testing.T) {
 		assert.True(t, allowed)
 	})
 
-	// (c) tidak ada override sama sekali → fallback ke @everyone (Deny)
 	t.Run("Fallback to @everyone - Deny", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil)
-		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{}, nil)
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil)
+		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{}, nil)
 		mockRole.On("GetEveryoneRole", mock.Anything, workspaceID).Return(&roleDomain.Role{
 			PermissionBitmask: int64(roleDomain.PermSendMessages), // does not have MANAGE_CHANNELS
 		}, nil)
@@ -104,17 +177,22 @@ func TestPermissionResolver_Resolve(t *testing.T) {
 		assert.False(t, allowed)
 	})
 
-	// (a) role default allow tapi channel override deny → hasil deny
 	t.Run("Role Override Deny wins over Role Default", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
 		roleID := uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil)
-		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil)
+		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{
 			{ID: roleID, PermissionBitmask: int64(roleDomain.PermSendMessages)}, // Default allows
 		}, nil)
 		mockOverride.On("FindRoleOverride", mock.Anything, channelID, roleID).Return(&application.ChannelOverride{
@@ -126,36 +204,45 @@ func TestPermissionResolver_Resolve(t *testing.T) {
 		assert.False(t, allowed)
 	})
 
-	// (b) role default deny tapi member-specific override allow → hasil allow
 	t.Run("Member Override Allow wins over Role Default Deny", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(&application.ChannelOverride{
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(&application.ChannelOverride{
 			Allow: roleDomain.PermManageChannels, // Member explicitly allowed
 		}, true, nil)
 
-		// Rest should not even be called because member override wins immediately
 		allowed, err := resolver.Resolve(context.Background(), userID, workspaceID, channelID, roleDomain.PermManageChannels)
 		assert.NoError(t, err)
 		assert.True(t, allowed)
 		mockRole.AssertNotCalled(t, "FindMemberRolesSortedByPosition")
 	})
 
-	// (d) Member dengan banyak role, role tertinggi menang untuk role default
 	t.Run("Multiple Roles - Highest Position Default Wins", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
 		role1ID, role2ID := uuid.New(), uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil)
-		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil)
+		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{
 			{ID: role1ID, PermissionBitmask: int64(roleDomain.PermManageMessages), Position: 10}, // High position (Allows)
 			{ID: role2ID, PermissionBitmask: 0, Position: 5},                                     // Low position (Does not allow)
 		}, nil)
@@ -170,13 +257,19 @@ func TestPermissionResolver_Resolve(t *testing.T) {
 	t.Run("Multiple Roles - Highest Position Override Wins", func(t *testing.T) {
 		mockOverride := new(MockChannelOverridePort)
 		mockRole := new(MockRolePort2)
-		resolver := application.NewPermissionResolver(mockOverride, mockRole)
+		mockWorkspace := new(MockPermResolverWorkspaceRepo)
+		mockMember := new(MockPermResolverMemberPort)
+		resolver := application.NewPermissionResolver(mockWorkspace, mockMember, mockOverride, mockRole)
 
 		userID, workspaceID, channelID := uuid.New(), uuid.New(), uuid.New()
+		memberID := uuid.New()
 		role1ID, role2ID := uuid.New(), uuid.New()
 
-		mockOverride.On("FindMemberOverride", mock.Anything, channelID, userID).Return(nil, false, nil)
-		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, userID).Return([]*roleDomain.Role{
+		mockWorkspace.On("GetByID", mock.Anything, workspaceID).Return(&wpDomain.Workspace{OwnerID: uuid.New()}, nil)
+		mockMember.On("GetByWorkspaceAndUser", mock.Anything, workspaceID, userID).Return(&memberDomain.Member{ID: memberID}, nil)
+
+		mockOverride.On("FindMemberOverride", mock.Anything, channelID, memberID).Return(nil, false, nil)
+		mockRole.On("FindMemberRolesSortedByPosition", mock.Anything, memberID).Return([]*roleDomain.Role{
 			{ID: role1ID, PermissionBitmask: int64(roleDomain.PermSendMessages), Position: 10},
 			{ID: role2ID, PermissionBitmask: int64(roleDomain.PermSendMessages), Position: 5},
 		}, nil)

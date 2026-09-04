@@ -30,6 +30,14 @@ func (m *MockWorkspaceRepository) Create(ctx context.Context, workspace *wpDomai
 	return args.Error(0)
 }
 
+func (m *MockWorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (*wpDomain.Workspace, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*wpDomain.Workspace), args.Error(1)
+}
+
 type MockMemberPort struct {
 	mock.Mock
 }

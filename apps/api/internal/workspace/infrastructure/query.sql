@@ -3,6 +3,10 @@ INSERT INTO workspaces (owner_id, name, icon_url)
 VALUES ($1, $2, $3)
 RETURNING *;
 
+-- name: GetWorkspaceByID :one
+SELECT * FROM workspaces
+WHERE id = $1;
+
 -- name: ListWorkspacesByNewest :many
 SELECT w.* 
 FROM workspaces w

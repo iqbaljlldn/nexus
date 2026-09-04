@@ -13,7 +13,7 @@ var (
 )
 
 type BaseClaims struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"uid"`
 	jwt_lib.RegisteredClaims
 }
 

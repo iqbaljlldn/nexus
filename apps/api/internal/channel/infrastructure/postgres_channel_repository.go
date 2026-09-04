@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/channel/domain"
@@ -157,7 +158,7 @@ func (r *PostgresChannelRepository) GetChannelPermissionOverrideByRole(ctx conte
 		RoleID:    uuid.NullUUID{UUID: roleID, Valid: true},
 	})
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // Return nil, nil when not found, common pattern for "upsert" checks
 		}
 		return nil, err
@@ -178,7 +179,7 @@ func (r *PostgresChannelRepository) GetChannelPermissionOverrideByMember(ctx con
 		MemberID:  uuid.NullUUID{UUID: memberID, Valid: true},
 	})
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // Return nil, nil when not found
 		}
 		return nil, err

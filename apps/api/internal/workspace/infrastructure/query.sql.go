@@ -120,6 +120,26 @@ func (q *Queries) FindInviteByCode(ctx context.Context, code string) (Invite, er
 	return i, err
 }
 
+const getWorkspaceByID = `-- name: GetWorkspaceByID :one
+SELECT id, owner_id, name, icon_url, created_at, updated_at, deleted_at FROM workspaces
+WHERE id = $1
+`
+
+func (q *Queries) GetWorkspaceByID(ctx context.Context, id uuid.UUID) (Workspace, error) {
+	row := q.db.QueryRowContext(ctx, getWorkspaceByID, id)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.IconUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getWorkspacesCountByUserID = `-- name: GetWorkspacesCountByUserID :one
 SELECT count(*) 
 FROM workspaces w

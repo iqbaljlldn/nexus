@@ -151,7 +151,7 @@ Setiap keputusan non-trivial (pilihan library baru, pola konkurensi baru, peruba
 ## 7. Status Proyek Saat Ini
 
 **Fase Arsitektur**: Phase A — Modular Monolith (belum ada service di `services/`).
-**Sprint Aktif**: Sprint 3 — Workspace, Permission & Channel (`17-task-checklist-sprint3.md`). (Sprint 1 dan Sprint 2 telah selesai).
+**Sprint Aktif**: Sprint 4 — Real-time Messaging & Presence (`18-task-checklist-sprint4.md`). (Sprint 1, 2, dan 3 telah selesai. Release 1 selesai).
 **Amandemen Terakhir**: MinIO menggantikan Cloudinary (ADR-007 v1.1), DM masuk scope resmi (PRD v1.1/SRS v1.1), Brevo sebagai email provider, refresh token via HttpOnly Cookie (Security Design).
 
 > Update bagian ini setiap sprint/fase berpindah, agar agent yang membaca file ini selalu tahu konteks terkini tanpa harus membaca ulang seluruh 15 dokumen.
