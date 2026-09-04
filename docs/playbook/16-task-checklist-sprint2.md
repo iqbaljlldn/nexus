@@ -282,9 +282,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Komponen form login (`pages/login.vue`)
-- [ ] Wire ke `session` store setelah sukses
-- [ ] E2E test: sukses & gagal
+- [x] Komponen form login (`pages/login.vue`)
+- [x] Wire ke `session` store setelah sukses
+- [x] E2E test: sukses & gagal
 
 ### Feature 3.4: Refresh Flow & Auto Re-auth
 
@@ -299,9 +299,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Plugin Nuxt (`app:mounted` hook) — panggil `useAuthRefresh()` sekali saat app load
-- [ ] Tampilkan loading state singkat selama proses (mencegah "flash" ke halaman login sebelum refresh selesai)
-- [ ] E2E test: refresh browser mempertahankan sesi
+- [x] Plugin Nuxt (`app:mounted` hook) — panggil `useAuthRefresh()` sekali saat app load
+- [x] Tampilkan loading state singkat selama proses (mencegah "flash" ke halaman login sebelum refresh selesai)
+- [x] E2E test: refresh browser mempertahankan sesi
 
 #### Task 3.4.2: Halaman Device/Session Management
 
@@ -314,9 +314,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Should *(selaras prioritas backend-nya, Task 2.7.2/2.7.3)*
 
 **Subtask & Checklist**:
-- [ ] Halaman/modal daftar sesi aktif
-- [ ] Tombol "Logout" vs "Logout dari semua device" dibedakan visual jelas (mencegah user salah pencet — pelajaran dari celah FR-AUTH-08)
-- [ ] E2E test: kedua alur logout
+- [x] Halaman/modal daftar sesi aktif
+- [x] Tombol "Logout" vs "Logout dari semua device" dibedakan visual jelas (mencegah user salah pencet — pelajaran dari celah FR-AUTH-08)
+- [x] E2E test: kedua alur logout
 
 ---
 
