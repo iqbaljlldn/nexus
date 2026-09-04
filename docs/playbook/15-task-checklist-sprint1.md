@@ -410,9 +410,9 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Komponen form register (`pages/register.vue`) dengan `TanStack Query useMutation`
-- [ ] Validasi client-side (UX hint), tampilkan error dari backend apa adanya (jangan override pesan backend dengan asumsi sendiri)
-- [ ] E2E test: sukses, error duplikat
+- [x] Komponen form register (`pages/register.vue`) dengan `TanStack Query useMutation`
+- [x] Validasi client-side (UX hint), tampilkan error dari backend apa adanya (jangan override pesan backend dengan asumsi sendiri)
+- [x] E2E test: sukses, error duplikat
 
 > **Catatan**: Halaman `login.vue` **sengaja tidak** dimasukkan ke Sprint 1 — backend login (`POST /auth/login`) baru ada di Sprint 2 (Task 2.4.3). Menaruh task frontend yang bergantung pada backend sprint berikutnya di sini akan melanggar urutan dependency yang konsisten dipakai proyek ini sejak awal. `login.vue` didetailkan di amandemen Sprint 2.
 
