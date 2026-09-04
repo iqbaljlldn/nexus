@@ -31,6 +31,7 @@ func (h *ChannelHandler) RegisterRoutes(router *gin.RouterGroup) {
 	protected.Use(middleware.Auth())
 
 	protected.POST("/workspaces/:id/channels", h.CreateTextChannel)
+	protected.GET("/workspaces/:id/channels", h.ListByWorkspace)
 	protected.PATCH("/channels/:id/permission-overrides", h.PatchPermissionOverrides)
 }
 
@@ -157,4 +158,40 @@ func (h *ChannelHandler) PatchPermissionOverrides(c *gin.Context) {
 	}
 
 	httpresponse.OK(c, gin.H{"message": "Permission override berhasil disimpan."})
+}
+
+func (h *ChannelHandler) ListByWorkspace(c *gin.Context) {
+	_, err := contextutil.UserID(c.Request.Context())
+	if err != nil {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeUserUnauthorized,
+			Message: "User tidak terautentikasi.",
+			Err:     err,
+		})
+		return
+	}
+
+	workspaceIDStr := c.Param("id")
+	workspaceID, err := uuid.Parse(workspaceIDStr)
+	if err != nil {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeInvalidFieldFormat,
+			Message: "ID Workspace tidak valid.",
+			Err:     err,
+		})
+		return
+	}
+
+	channels, err := h.channelService.ListByWorkspaceID(c.Request.Context(), workspaceID)
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+
+	dtos := make([]*dto.ChannelResponse, 0, len(channels))
+	for i := range channels {
+		dtos = append(dtos, dto.FromChannel(&channels[i]))
+	}
+
+	httpresponse.OK(c, dtos)
 }

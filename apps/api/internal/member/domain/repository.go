@@ -11,4 +11,5 @@ type MemberRepository interface {
 	// member pointer upon success.
 	Create(ctx context.Context, member *Member) error
 	GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*Member, error)
+	ListByWorkspaceID(ctx context.Context, workspaceID uuid.UUID, limit int32) ([]Member, error)
 }

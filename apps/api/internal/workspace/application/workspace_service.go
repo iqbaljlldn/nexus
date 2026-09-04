@@ -214,3 +214,7 @@ func (s *WorkspaceService) ListByUserID(ctx context.Context, userID uuid.UUID, r
 			HasMore: hasMore,
 		}, nil
 }
+
+func (s *WorkspaceService) ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]memberDomain.Member, error) {
+	return s.memberPort.ListByWorkspaceID(ctx, workspaceID, 100)
+}

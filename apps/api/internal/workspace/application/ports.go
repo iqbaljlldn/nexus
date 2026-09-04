@@ -23,6 +23,7 @@ type MemberPort interface {
 	// member pointer upon success.
 	Create(ctx context.Context, member *memberDomain.Member) error
 	GetByWorkspaceAndUser(ctx context.Context, workspaceID, userID uuid.UUID) (*memberDomain.Member, error)
+	ListByWorkspaceID(ctx context.Context, workspaceID uuid.UUID, limit int32) ([]memberDomain.Member, error)
 }
 
 // RolePort is the interface the workspace application layer uses to

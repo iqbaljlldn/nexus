@@ -322,10 +322,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `layouts/default.vue`
-- [ ] Komponen `ServerSidebar.vue` (daftar workspace, icon)
-- [ ] Komponen `ChannelSidebar.vue` (kategori + channel list, placeholder sebelum Task 6.2.2)
-- [ ] E2E test navigasi dasar
+- [x] Implementasi `layouts/default.vue`
+- [x] Komponen `ServerSidebar.vue` (daftar workspace, icon)
+- [x] Komponen `ChannelSidebar.vue` (kategori + channel list, placeholder sebelum Task 6.2.2)
+- [x] E2E test navigasi dasar
 
 #### Task 6.1.2: Pinia Store — `activeWorkspace.ts`
 
@@ -338,8 +338,8 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `stores/activeWorkspace.ts`
-- [ ] Unit test dasar
+- [x] Implementasi `stores/activeWorkspace.ts`
+- [x] Unit test dasar
 
 ---
 
@@ -356,9 +356,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Modal/halaman buat workspace dengan `useMutation`
-- [ ] `useQuery` daftar workspace, wire ke `ServerSidebar`
-- [ ] E2E test: buat → muncul otomatis
+- [x] Modal/halaman buat workspace dengan `useMutation`
+- [x] `useQuery` daftar workspace, wire ke `ServerSidebar`
+- [x] E2E test: buat → muncul otomatis
 
 #### Task 6.2.2: UI Invite — Generate & Redeem
 
@@ -371,9 +371,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Komponen generate invite (dengan opsi `max_uses`/`expires_in_hours`)
-- [ ] Halaman redeem invite (`pages/invite/[code].vue`) dengan `Idempotency-Key` generated client-side
-- [ ] E2E test alur penuh 2 user
+- [x] Komponen generate invite (dengan opsi `max_uses`/`expires_in_hours`)
+- [x] Halaman redeem invite (`pages/invite/[code].vue`) dengan `Idempotency-Key` generated client-side
+- [x] E2E test alur penuh 2 user
 
 ---
 
@@ -390,10 +390,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Konstanta permission flag di frontend (`constants/permissions.ts`) — **disinkronkan manual** dengan backend, komentar eksplisit mengingatkan hal ini
-- [ ] Form buat role (checkbox per flag)
-- [ ] UI assignment role ke member
-- [ ] E2E test alur penuh
+- [x] Konstanta permission flag di frontend (`constants/permissions.ts`) — **disinkronkan manual** dengan backend, komentar eksplisit mengingatkan hal ini
+- [x] Form buat role (checkbox per flag)
+- [x] UI assignment role ke member
+- [x] E2E test alur penuh
 
 #### Task 6.3.2: Permission-Aware UI Rendering — Konsumsi `viewer_permissions`
 
@@ -406,9 +406,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `composables/usePermission.ts` persis §7 Frontend Architecture
-- [ ] Terapkan di komponen channel/workspace settings (sembunyikan aksi tanpa izin)
-- [ ] Test: UI hint bekerja + verifikasi manual backend tetap menolak request langsung
+- [x] Implementasi `composables/usePermission.ts` persis §7 Frontend Architecture
+- [x] Terapkan di komponen channel/workspace settings (sembunyikan aksi tanpa izin)
+- [x] Test: UI hint bekerja + verifikasi manual backend tetap menolak request langsung
 
 ---
 
@@ -425,10 +425,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Modal buat channel (permission-aware, reuse Task 6.3.2)
-- [ ] `ChannelSidebar` menampilkan channel per kategori (reuse `useQuery`)
-- [ ] Routing dinamis `pages/workspaces/[id]/channels/[channelId].vue`
-- [ ] E2E test navigasi channel
+- [x] Modal buat channel (permission-aware, reuse Task 6.3.2)
+- [x] `ChannelSidebar` menampilkan channel per kategori (reuse `useQuery`)
+- [x] Routing dinamis `pages/workspaces/[id]/channels/[channelId].vue`
+- [x] E2E test navigasi channel
 
 ---
 
@@ -445,9 +445,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis skenario Playwright penuh (2 browser context simulasi 2 user)
-- [ ] Jalankan 3x berturut, pastikan tidak flaky
-- [ ] Update `docs/AGENTS.md` §7 — Sprint 3 frontend selesai bersamaan backend
+- [x] Tulis skenario Playwright penuh (2 browser context simulasi 2 user)
+- [x] Jalankan 3x berturut, pastikan tidak flaky
+- [x] Update `docs/AGENTS.md` §7 — Sprint 3 frontend selesai bersamaan backend
 
 ---
 

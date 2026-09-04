@@ -39,6 +39,7 @@ func (h *WorkspaceHandler) RegisterRoutes(router *gin.RouterGroup) {
 
 	protected.POST("/workspaces", h.Create)
 	protected.GET("/workspaces", h.List)
+	protected.GET("/workspaces/:id/members", h.ListMembers)
 	protected.POST("/workspaces/:id/invites", h.CreateInvite)
 	protected.POST("/invites/:code/redeem", h.RedeemInvite)
 }
@@ -200,4 +201,35 @@ func (h *WorkspaceHandler) RedeemInvite(c *gin.Context) {
 	}
 
 	httpresponse.OK(c, resp)
+}
+
+func (h *WorkspaceHandler) ListMembers(c *gin.Context) {
+	_, err := contextutil.UserID(c.Request.Context())
+	if err != nil {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeUserUnauthorized,
+			Message: "User tidak terautentikasi.",
+			Err:     err,
+		})
+		return
+	}
+
+	workspaceIDStr := c.Param("id")
+	workspaceID, err := uuid.Parse(workspaceIDStr)
+	if err != nil {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeInvalidFieldFormat,
+			Message: "ID Workspace tidak valid.",
+			Err:     err,
+		})
+		return
+	}
+
+	members, err := h.workspaceService.ListMembers(c.Request.Context(), workspaceID)
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+
+	httpresponse.OK(c, members)
 }

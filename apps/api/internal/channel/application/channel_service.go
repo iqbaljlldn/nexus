@@ -28,6 +28,11 @@ func (s *ChannelService) GetByID(ctx context.Context, id uuid.UUID) (*domain.Cha
 	return s.repo.GetByID(ctx, id)
 }
 
+// ListByWorkspaceID returns all channels in a workspace.
+func (s *ChannelService) ListByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) ([]domain.Channel, error) {
+	return s.repo.ListByWorkspaceID(ctx, workspaceID)
+}
+
 // CreateTextChannel creates a new text channel in a workspace.
 func (s *ChannelService) CreateTextChannel(ctx context.Context, workspaceID uuid.UUID, name string, categoryID *uuid.UUID) (*domain.Channel, error) {
 	log := logger.FromContext(ctx, s.log)

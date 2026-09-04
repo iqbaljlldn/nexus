@@ -65,3 +65,35 @@ func (r *PostgresMemberRepository) GetByWorkspaceAndUser(ctx context.Context, wo
 		JoinedAt:    dbMember.JoinedAt,
 	}, nil
 }
+
+func (r *PostgresMemberRepository) ListByWorkspaceID(ctx context.Context, workspaceID uuid.UUID, limit int32) ([]domain.Member, error) {
+	dbtx := txcontext.ExtractDBTX(ctx, r.db)
+
+	if limit <= 0 {
+		limit = 100
+	}
+
+	rows, err := New(dbtx).ListMembersByWorkspace(ctx, ListMembersByWorkspaceParams{
+		WorkspaceID: workspaceID,
+		Limit:       limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	members := make([]domain.Member, 0, len(rows))
+	for _, row := range rows {
+		var nickname string
+		if row.Nickname.Valid {
+			nickname = row.Nickname.String
+		}
+		members = append(members, domain.Member{
+			ID:          row.ID,
+			WorkspaceID: row.WorkspaceID,
+			UserID:      row.UserID,
+			Nickname:    nickname,
+			JoinedAt:    row.JoinedAt,
+		})
+	}
+	return members, nil
+}

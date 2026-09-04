@@ -59,6 +59,14 @@ func (m *MockMemberPort) GetByWorkspaceAndUser(ctx context.Context, workspaceID,
 	return args.Get(0).(*memberDomain.Member), args.Error(1)
 }
 
+func (m *MockMemberPort) ListByWorkspaceID(ctx context.Context, workspaceID uuid.UUID, limit int32) ([]memberDomain.Member, error) {
+	args := m.Called(ctx, workspaceID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]memberDomain.Member), args.Error(1)
+}
+
 type MockRolePort struct {
 	mock.Mock
 }
