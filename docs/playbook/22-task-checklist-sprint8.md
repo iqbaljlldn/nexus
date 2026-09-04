@@ -241,9 +241,84 @@
 
 ---
 
+## EPIC 14: Frontend — Notification UI
+
+### Feature 14.1: Notification Toast & Dropdown
+
+#### Task 14.1.1: Toast Notifikasi Realtime
+
+- **Deskripsi**: Perluas event router (Task 8.1.2 Sprint 4) dengan case `notification.new` (§10 API Spec) — tampilkan toast singkat saat notifikasi masuk ketika user sedang aktif di aplikasi (bukan di channel yang sama dengan sumber notifikasi).
+- **Acceptance Criteria**: Toast tidak muncul bila user sedang **berada** di channel sumber notifikasi tersebut (mis. mention di channel yang sedang dibuka — pesan sudah terlihat langsung di `MessageList`, notifikasi terpisah jadi redundan/mengganggu).
+- **Definition of Done**: E2E test: mention di channel lain (bukan yang sedang dibuka) → toast muncul; mention di channel yang sedang dibuka → toast **tidak** muncul (hanya highlight visual pada pesan, bila ada).
+- **Dependency**: Task 8.1.2 (Sprint 4)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Perluas event router — case `notification.new`
+- [ ] Komponen `NotificationToast.vue`, logic cek `activeWorkspace.currentChannelId` sebelum menampilkan
+- [ ] E2E test: 2 skenario (channel lain vs channel aktif)
+
+#### Task 14.1.2: Dropdown Riwayat Notifikasi
+
+- **Deskripsi**: Ikon lonceng dengan badge unread count, dropdown menampilkan riwayat notifikasi (bila ada endpoint list — dicatat sebagai **amandemen kecil tambahan**: `GET /notifications` belum ada di API Specification, ditambahkan sekarang untuk kebutuhan UI ini).
+- **Acceptance Criteria**: Badge count berkurang saat notifikasi dibuka/dibaca.
+- **Definition of Done**: E2E test: notifikasi masuk → badge bertambah; buka dropdown → badge reset.
+- **Dependency**: Task 14.1.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Should
+
+**Subtask & Checklist**:
+- [ ] **Amandemen API Spec**: tambah `GET /api/v1/notifications` (list `notification_deliveries` milik user, cursor-based, reuse tabel Task 13.1.1 Sprint 8 backend)
+- [ ] Backend: tambah handler ringan untuk endpoint ini (task susulan kecil di Sprint 8 backend)
+- [ ] Komponen `NotificationBell.vue` + dropdown list
+- [ ] E2E test: badge count & reset
+
+---
+
+### Feature 14.2: Notification Preferences UI
+
+#### Task 14.2.1: UI Mute per Channel/Workspace
+
+- **Deskripsi**: UI untuk `GET/PUT /notifications/preferences` (Task 13.5.1 backend).
+- **Acceptance Criteria**: Toggle mute di context menu channel/workspace (`all`/`mentions_only`/`none`), mencerminkan resolusi 2 tingkat (channel override workspace) yang sudah ada di backend.
+- **Definition of Done**: E2E test: set workspace mute `none`, override channel tertentu `all` → notifikasi channel tersebut tetap masuk meski workspace di-mute (mencerminkan test backend Task 13.5.1).
+- **Dependency**: Task 14.1.2
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Context menu toggle mute (channel & workspace level)
+- [ ] `useMutation` untuk `PUT /notifications/preferences`
+- [ ] E2E test: override channel menang atas workspace
+
+---
+
+### Feature 14.3: Integration Test End-to-End Frontend Sprint 8
+
+#### Task 14.3.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 13.8.1)
+
+- **Deskripsi**: Versi frontend, dengan mock Brevo (backend sudah mock untuk CI, frontend tidak perlu verifikasi email actual — cukup verifikasi WS notification dan preference behavior).
+- **Acceptance Criteria**: Alur (a)-(c) dari Task 13.8.1 backend (kecuali skenario email yang di luar scope test frontend), dieksekusi via UI.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut.
+- **Dependency**: Seluruh task Epic 14
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright (toast muncul/tidak, mute preference)
+- [ ] Jalankan 3x berturut, pastikan tidak flaky
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 8 frontend selesai bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 8 mencakup **1 Epic besar, 8 Feature, 12 task**, menuntaskan seluruh scope Notification (FR-NOTIF-01 s.d. 04).
+1. Sprint 8 mencakup **1 Epic besar, 8 Feature, 12 task** backend, menuntaskan seluruh scope Notification (FR-NOTIF-01 s.d. 04). *(Direvisi: ditambah Epic 14 — 3 Feature, 5 Task frontend, amandemen retroaktif, termasuk amandemen kecil API Spec `GET /notifications` untuk riwayat.)*
 2. **Penomoran sprint direvisi** dari garis besar awal (Sprint Planning) — Notification bergeser dari "Sprint 7" menjadi **Sprint 8**, konsekuensi wajar Release 2 yang ternyata butuh 4 sprint, bukan 3. Ini dicatat eksplisit sebagai contoh nyata Rolling Wave Planning bekerja sesuai desain.
 3. Trigger notifikasi (Task 13.4.1/13.4.2) memakai **in-process call sementara** (bukan event asynchronous sungguhan) karena Outbox Pattern belum dibangun hingga Release 4 — namun `NotificationDispatchService` didesain dengan kontrak yang **identik** dengan yang akan dipakai saat menjadi event consumer nanti, meminimalkan rework di Milestone 12.
 4. Batching email (Task 13.6.1) adalah task **paling kompleks** di sprint ini (ditandai Tinggi) — logic deferral/akumulasi berbeda signifikan dari rate limiting reject biasa yang sudah dibangun Sprint 2.
@@ -275,3 +350,4 @@
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 8 (penomoran direvisi dari "Sprint 7" di garis besar awal): 1 Epic, 8 Feature, 12 task, menuntaskan Notification dengan trigger in-process sementara yang didesain siap migrasi ke event-driven di Release 4 |
+| 1.1.0 | Amandemen | Ditambahkan Epic 14: Frontend (toast notifikasi kontekstual, dropdown riwayat, preference UI) — amandemen retroaktif, termasuk amandemen kecil endpoint `GET /notifications` |

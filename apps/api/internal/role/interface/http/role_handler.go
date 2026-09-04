@@ -1,10 +1,13 @@
 package http
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/platform/middleware"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/role/application"
+	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/role/interface/dto"
 	"github.com/iqbaljlldn/nexus/pkg/contextutil"
 	pkgerrors "github.com/iqbaljlldn/nexus/pkg/errors"
@@ -12,12 +15,14 @@ import (
 )
 
 type RoleHandler struct {
-	roleService *application.RoleService
+	roleService  *application.RoleService
+	permResolver PermissionResolver
 }
 
-func NewRoleHandler(roleService *application.RoleService) *RoleHandler {
+func NewRoleHandler(roleService *application.RoleService, permResolver PermissionResolver) *RoleHandler {
 	return &RoleHandler{
-		roleService: roleService,
+		roleService:  roleService,
+		permResolver: permResolver,
 	}
 }
 
@@ -30,7 +35,7 @@ func (h *RoleHandler) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (h *RoleHandler) Create(c *gin.Context) {
-	_, err := contextutil.UserID(c.Request.Context())
+	userID, err := contextutil.UserID(c.Request.Context())
 	if err != nil {
 		httpresponse.Error(c, &pkgerrors.DomainError{
 			Code:    pkgerrors.CodeUserUnauthorized,
@@ -57,9 +62,19 @@ func (h *RoleHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// TODO(task-3.5.x): Check permission MANAGE_ROLES using Permission Resolver once implemented.
-	// Currently any authenticated member can create a role; this MUST be gated by permission
-	// resolver before merging to production.
+	allowed, err := h.permResolver.Resolve(c.Request.Context(), userID, workspaceID, uuid.Nil, roleDomain.PermManageRoles)
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+	if !allowed {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeForbidden,
+			Message: "Anda tidak memiliki izin untuk mengelola role di workspace ini.",
+			Err:     errors.New("forbidden: missing MANAGE_ROLES permission"),
+		})
+		return
+	}
 
 	role, err := h.roleService.Create(c.Request.Context(), workspaceID, req.Name, req.PermissionBitmask, req.Position)
 	if err != nil {
@@ -71,7 +86,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 }
 
 func (h *RoleHandler) AssignRoles(c *gin.Context) {
-	_, err := contextutil.UserID(c.Request.Context())
+	userID, err := contextutil.UserID(c.Request.Context())
 	if err != nil {
 		httpresponse.Error(c, &pkgerrors.DomainError{
 			Code:    pkgerrors.CodeUserUnauthorized,
@@ -109,11 +124,20 @@ func (h *RoleHandler) AssignRoles(c *gin.Context) {
 		return
 	}
 
-	// TODO(task-3.5.x): Check permission MANAGE_ROLES using Permission Resolver once implemented.
-	// Currently any authenticated member can assign roles; this MUST be gated by permission
-	// resolver before merging to production.
+	allowed, err := h.permResolver.Resolve(c.Request.Context(), userID, workspaceID, uuid.Nil, roleDomain.PermManageRoles)
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+	if !allowed {
+		httpresponse.Error(c, &pkgerrors.DomainError{
+			Code:    pkgerrors.CodeForbidden,
+			Message: "Anda tidak memiliki izin untuk mengubah role di workspace ini.",
+			Err:     errors.New("forbidden: missing MANAGE_ROLES permission"),
+		})
+		return
+	}
 
-	userID, _ := contextutil.UserID(c.Request.Context()) // already checked above
 	if err := h.roleService.AssignRoles(c.Request.Context(), workspaceID, memberID, userID, req.RoleIDs); err != nil {
 		httpresponse.Error(c, err)
 		return

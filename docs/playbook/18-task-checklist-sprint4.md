@@ -299,9 +299,149 @@ Sesuai **Rolling Wave Planning**, dokumen ini adalah detail pertama untuk **Rele
 
 ---
 
+## EPIC 8: Frontend — WebSocket Client & Messaging UI
+
+### Feature 8.1: WebSocket Client Infrastructure
+
+#### Task 8.1.1: `useWebSocket` Composable — Koneksi Singleton
+
+- **Deskripsi**: Implementasi persis Frontend Architecture §5.1 — satu koneksi global per tab, reconnect exponential backoff, penanganan close code `4001` (auth gagal, tidak reconnect otomatis).
+- **Acceptance Criteria**: Koneksi diinisialisasi sekali di plugin (`websocket.client.ts`), bukan per komponen; reconnect otomatis dengan backoff saat koneksi putus tidak normal.
+- **Definition of Done**: Test: simulasikan disconnect paksa → reconnect otomatis dalam waktu wajar; simulasikan close code 4001 → redirect login tanpa retry.
+- **Dependency**: Task 3.4.1 (Sprint 2 — auth resolved sebelum WS connect), Task 6.1.1 (Sprint 3 — access token tersedia)
+- **Estimasi Kesulitan**: Tinggi
+- **Estimasi Waktu**: 3.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `composables/useWebSocket.ts` persis §5.1
+- [ ] Plugin `plugins/websocket.client.ts` — connect sekali saat app mount (setelah auth resolved)
+- [ ] Reconnect exponential backoff (bukan retry langsung tanpa jeda — mencegah thundering herd, konsisten prinsip yang sama dipakai backend)
+- [ ] Test: reconnect normal, close code 4001 tidak retry
+
+#### Task 8.1.2: Event Router — `routeIncomingEvent`
+
+- **Deskripsi**: Implementasi persis §5.2 — menyuntik event ke TanStack Query cache & Pinia store, bukan trigger refetch.
+- **Acceptance Criteria**: Untuk Sprint 4, minimal handle `message.created`, `message.updated`, `message.deleted` (event lain ditambah bertahap seiring sprint yang memperkenalkannya — dicatat sebagai checklist wajib per sprint, Frontend Architecture §5.2 §Risiko).
+- **Definition of Done**: Test: publish event WS manual (test harness) → cache TanStack Query ter-update tanpa network request tambahan (verifikasi via network tab/mock — tidak ada refetch terpicu).
+- **Dependency**: Task 8.1.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `routeIncomingEvent` dengan case `message.created/updated/deleted`
+- [ ] Wire ke `useWebSocket.onmessage`
+- [ ] Test: event masuk → cache update tanpa refetch
+
+---
+
+### Feature 8.2: Message List (Virtual Scroll + Cursor Pagination)
+
+#### Task 8.2.1: `useMessages` Composable
+
+- **Deskripsi**: Implementasi persis Frontend Architecture §3.3 — `useInfiniteQuery` + `useMutation` dengan optimistic update.
+- **Acceptance Criteria**: `sendMutation` **tidak** invalidate query cache secara manual (pesan baru datang lewat WS broadcast, Task 8.1.2, bukan refetch REST) — hanya optimistic update + rollback saat error.
+- **Definition of Done**: Test: kirim pesan → muncul instan (optimistic) → dikonfirmasi WS broadcast (bukan refetch); simulasikan kirim gagal → optimistic message di-rollback.
+- **Dependency**: Task 8.1.2
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `composables/useMessages.ts` persis §3.3
+- [ ] Optimistic add + rollback on error
+- [ ] Test: sukses (optimistic→confirmed via WS), gagal (rollback)
+
+#### Task 8.2.2: `MessageList.vue` — Virtual Scroll
+
+- **Deskripsi**: Implementasi persis §6 — Vue Virtual Scroller + `useInfiniteScroll`/`useChannelMessageList`.
+- **Acceptance Criteria**: Scroll ke atas memicu `fetchNextPage` (load riwayat lama); hanya pesan dalam viewport yang di-render ke DOM (verifikasi via DevTools — jumlah DOM node jauh lebih sedikit dari jumlah total pesan pada channel dengan riwayat panjang).
+- **Definition of Done**: Test manual/E2E: channel dengan 200+ pesan (seed data test) — scroll ke atas memuat halaman lama, DOM node tidak meledak.
+- **Dependency**: Task 8.2.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `composables/useInfiniteScroll.ts` persis §6
+- [ ] Komponen `MessageList.vue` dengan `RecycleScroller` (Vue Virtual Scroller)
+- [ ] Komponen `MessageItem.vue` (render satu pesan)
+- [ ] Test: scroll-load riwayat lama, verifikasi DOM node count wajar
+
+#### Task 8.2.3: `MessageComposer.vue` — Kirim Pesan
+
+- **Deskripsi**: Input area dengan submit ke `sendMutation` (Task 8.2.1).
+- **Acceptance Criteria**: Rate limit backend (10 pesan/10 detik, Task 7.2.2) direspons dengan pesan error jelas di UI (bukan silent fail) bila `429` diterima.
+- **Definition of Done**: E2E test: kirim pesan → muncul di list; kirim 11x cepat → pesan ke-11 menampilkan error rate limit.
+- **Dependency**: Task 8.2.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen `MessageComposer.vue` (textarea + submit)
+- [ ] Handle error `429 RATE_LIMIT_EXCEEDED` dengan pesan UI jelas
+- [ ] E2E test: kirim normal, kirim melebihi rate limit
+
+---
+
+### Feature 8.3: Edit & Delete Pesan (Optimistic Locking UX)
+
+#### Task 8.3.1: UI Edit Pesan — Penanganan Conflict
+
+- **Deskripsi**: UI untuk `PATCH /messages/{id}` (Task 7.4.1) — **wajib** menangani `409 OPTIMISTIC_LOCK_CONFLICT` dengan UX yang jelas, bukan generic error.
+- **Acceptance Criteria**: Saat conflict terjadi (pesan sudah diubah pihak lain sejak dimuat), UI menawarkan reload versi terbaru sebelum user mencoba edit ulang — **bukan** menampilkan pesan error teknis mentah ke user.
+- **Definition of Done**: Test: simulasikan 2 edit bersamaan (2 tab browser) → tab kedua menerima conflict UI yang jelas, bukan crash/silent fail.
+- **Dependency**: Task 8.2.2
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Mode edit inline di `MessageItem.vue`, kirim `expected_version` dari data yang sedang ditampilkan
+- [ ] Handler khusus `409 OPTIMISTIC_LOCK_CONFLICT` — tampilkan opsi "muat ulang versi terbaru"
+- [ ] Test: 2 tab edit bersamaan, verifikasi UX conflict
+
+#### Task 8.3.2: UI Hapus Pesan (Soft Delete)
+
+- **Deskripsi**: UI untuk `DELETE /messages/{id}` (Task 7.5.1), permission-aware (reuse `usePermission`, Task 6.3.2 Sprint 3).
+- **Acceptance Criteria**: Tombol hapus hanya muncul untuk penulis asli ATAU user dengan `viewer_permissions.can_manage_messages`.
+- **Definition of Done**: E2E test: penulis melihat tombol hapus; member biasa tanpa permission tidak melihatnya untuk pesan orang lain.
+- **Dependency**: Task 8.3.1, Task 6.3.2 (Sprint 3)
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Tombol hapus di `MessageItem.vue`, kondisional `usePermission`/kepemilikan
+- [ ] Konfirmasi dialog sebelum hapus (UX standar, mencegah hapus tidak sengaja)
+- [ ] E2E test: 2 skenario permission
+
+---
+
+### Feature 8.4: Integration Test End-to-End Frontend Sprint 4
+
+#### Task 8.4.1: Skenario Penuh — Realtime Messaging via UI
+
+- **Deskripsi**: Versi frontend dari Task 7.6.1 backend — 2 browser context.
+- **Acceptance Criteria**: User A kirim pesan via UI → User B (browser context lain, channel sama) melihatnya muncul **tanpa refresh manual**; User A edit → User B melihat update realtime; User A hapus → User B melihat pesan hilang.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut.
+- **Dependency**: Seluruh task Epic 8
+- **Estimasi Kesulitan**: Tinggi
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright 2 context (2 user berbeda, channel sama)
+- [ ] Jalankan 3x berturut, pastikan tidak flaky
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 4 frontend selesai bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Garis besar Release 2 (Sprint Planning §3) dipecah: **Sprint 4 = WebSocket Infra + Messaging Core**, **Sprint 5 = Reply/Thread/Mention/Reaction/DM** — pemecahan ini sendiri adalah instance dari Rolling Wave Planning yang diterapkan berulang, bukan hanya sekali di level Release.
+1. Garis besar Release 2 (Sprint Planning §3) dipecah: **Sprint 4 = WebSocket Infra + Messaging Core**, **Sprint 5 = Reply/Thread/Mention/Reaction/DM** — pemecahan ini sendiri adalah instance dari Rolling Wave Planning yang diterapkan berulang, bukan hanya sekali di level Release. *(Direvisi: ditambah Epic 8 — 4 Feature, 9 Task frontend, amandemen retroaktif — WebSocket client singleton, virtual-scroll message list, optimistic UI kirim/edit pesan.)*
 2. Skema `messages`, `reactions`, `mentions` disiapkan **sekaligus** di Sprint 4 (Task 7.1.1-7.1.2) meski sebagian fiturnya (reaction, mention) baru datang Sprint 5 — menghindari migrasi tambahan yang tidak perlu, konsisten dengan pendekatan proaktif di Sprint 3 untuk skema `channels`.
 3. Broadcast WebSocket **synchronous in-process** (bukan lewat Outbox) untuk pesan real-time — implementasi persis mengikuti keputusan HLD §3 dan §6.1 (dibedakan tegas dari notifikasi/indexing yang asynchronous, baru datang di Release 4).
 4. Task 6.1.2 (ConnectionRegistry) dan Task 7.6.1 (integration test) ditandai **Estimasi Kesulitan Tinggi** — dua titik paling berisiko meleset waktu di sprint ini karena melibatkan konkurensi dan test asynchronous.
@@ -334,3 +474,4 @@ Sesuai **Rolling Wave Planning**, dokumen ini adalah detail pertama untuk **Rele
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 4: 2 Epic (WebSocket Infrastructure, Messaging Core), 6 Feature, 15 task, memecah garis besar Release 2 dari Sprint Planning menjadi detail penuh |
+| 1.1.0 | Amandemen | Ditambahkan Epic 8: Frontend (WebSocket client, virtual-scroll message list, optimistic UI, conflict handling edit) — amandemen retroaktif |

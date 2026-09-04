@@ -229,9 +229,21 @@
 
 ---
 
+## Catatan Frontend *(amandemen retroaktif)*
+
+Sama seperti Sprint 12, ekstraksi `identity-svc` seharusnya **transparan** bagi frontend — URL path (`/api/v1/auth/*`) tidak berubah (Traefik yang mengarahkan ke tujuan berbeda secara internal, Task 18.7.1), dan frontend tidak tahu maupun perlu tahu bahwa permintaannya sekarang diproses service terpisah.
+
+**Namun**, ini adalah sprint dengan risiko regresi tertinggi sejauh ini (dicatat eksplisit di §Risiko backend) — sehingga frontend **wajib** menjalankan regression penuh, bukan asumsi "pasti transparan":
+
+- [ ] Jalankan **seluruh** regression Playwright Sprint 1-12 terhadap topologi baru (monolith + `identity-svc`)
+- [ ] Perhatian khusus: alur auth (register, login, refresh, logout, logout-all, device management — Task 3.2.1, 3.3.1, 3.4.1, 3.4.2 frontend Sprint 1-2) karena inilah domain yang benar-benar berpindah lokasi eksekusi
+- [ ] **Bila Task 18.7.2 backend menemukan kegagalan** (dicatat di laporan `sprint13-extraction-findings.md`) yang berdampak pada kontrak API — laporkan sebagai temuan bersama, bukan tambal sendiri di frontend tanpa sinkronisasi dengan perubahan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 13 mencakup **1 Epic, 7 Feature, 12 task**, menandai transisi Phase B → **Phase C — Hybrid Architecture**.
+1. Sprint 13 mencakup **1 Epic, 7 Feature, 12 task** (murni backend), menandai transisi Phase B → **Phase C — Hybrid Architecture**. *(Amandemen retroaktif: tidak ada task frontend baru — ekstraksi service seharusnya transparan bagi client, namun regression penuh Sprint 1-12 wajib dijalankan mengingat ini sprint berisiko regresi tertinggi.)*
 2. Urutan kerja **kontrak dulu, baru pindah kode** (Feature 18.2 sebelum 18.3) dipatuhi persis sesuai Best Practice HLD §1.3.
 3. **Temuan arsitektural signifikan**: PostgreSQL tidak mendukung FK lintas database — Database-per-Service berarti **melepas** integritas referensial level-database untuk relasi lintas service (Task 18.4.2), digantikan verifikasi level-aplikasi. Ini bukan detail kecil — ini adalah salah satu trade-off paling fundamental dari Database-per-Service pattern, dan proyek ini sekarang benar-benar merasakannya, bukan hanya membacanya di teori.
 4. JWT verification **tetap lokal** di monolith (Task 18.5.2) — keputusan sadar bahwa tidak semua hal harus memanggil service yang diekstraksi; JWT secara desain memang stateless untuk alasan ini.
@@ -265,3 +277,4 @@
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 13: 1 Epic, 7 Feature, 12 task. Mengekstraksi domain Identity sebagai service pertama, menandai transisi Phase B → Phase C, dengan penekanan eksplisit pada kejujuran pelaporan hasil ekstraksi |
+| 1.1.0 | Amandemen | Ditambahkan Catatan Frontend — dikonfirmasi tidak ada task baru diperlukan (ekstraksi seharusnya transparan), namun regression penuh Sprint 1-12 wajib mengingat risiko regresi tertinggi di sprint ini |

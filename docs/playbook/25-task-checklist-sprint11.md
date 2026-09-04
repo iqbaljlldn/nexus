@@ -2,8 +2,8 @@
 ## Project: Nexus — Discord-like Realtime Platform
 
 **Dokumen:** Phase 11 — Detailed Task Checklist (Sprint 11: Optimization — Milestone 11 Checkpoint)
-**Versi:** 1.0.0
-**Status:** Draft — Menunggu Persetujuan
+**Versi:** 1.1.0
+**Status:** Accepted (amandemen frontend — lihat Changelog)
 **Referensi Wajib:** `04-learning-roadmap.md` (Milestone 11), `13-development-roadmap.md` (Release 4), `08-lld.md` (seluruh debt bertanda "dituning di Milestone 11"), `12-deployment-architecture.md` (§8 Resource Allocation)
 **Klasifikasi:** Internal — Source of Truth
 
@@ -263,9 +263,46 @@ Sprint 11 **berbeda karakter** dari sprint sebelumnya — bukan membangun fitur 
 
 ---
 
+### Feature 16.8: Frontend Performance Audit *(amandemen retroaktif)*
+
+> **Catatan**: berbeda dari Feature 16.1-16.7 yang backend-focused, ini menutup celah cakupan frontend di Milestone 11 — checkpoint optimasi seharusnya mencakup **seluruh** sistem, bukan hanya backend.
+
+#### Task 16.8.1: Lighthouse Audit & Bundle Size Analysis
+
+- **Deskripsi**: Jalankan Lighthouse (Performance, Accessibility, Best Practices) terhadap halaman kunci (login, workspace utama dengan banyak channel, channel dengan riwayat pesan panjang); analisis bundle size (`nuxt analyze` atau `rollup-plugin-visualizer`).
+- **Acceptance Criteria**: Skor Lighthouse Performance minimal 80 untuk halaman utama; identifikasi dependency yang berkontribusi signifikan ke bundle size (kandidat: LiveKit SDK, Floating UI — pertimbangkan lazy-load untuk fitur yang tidak selalu dipakai, mis. voice/video module hanya di-load saat user benar-benar join).
+- **Definition of Done**: Laporan (`docs/reports/sprint11-frontend-performance.md`) berisi skor before/after optimasi (bila ada perbaikan diterapkan) dan daftar dependency berat.
+- **Dependency**: Release 3 frontend selesai (Sprint 10)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Jalankan Lighthouse pada 3 halaman kunci
+- [ ] Analisis bundle size, identifikasi dependency berat
+- [ ] **Bila skor < 80**: terapkan minimal 1 perbaikan (code splitting/lazy load module voice-video, image lazy loading pada avatar/attachment) dan ukur ulang
+- [ ] Tulis laporan before/after
+
+#### Task 16.8.2: Verifikasi Virtual Scroll di Bawah Beban Nyata
+
+- **Deskripsi**: Validasi empiris klaim performa Vue Virtual Scroller (Task 8.2.2 Sprint 4) terhadap channel dengan riwayat sangat panjang (memakai data seed 1 juta baris dari Task 16.3.2 backend Sprint 11).
+- **Acceptance Criteria**: Scroll pada channel dengan puluhan ribu pesan tetap responsif (tidak ada jank signifikan); jumlah DOM node ter-render tetap konstan (tidak bertambah seiring scroll, karakteristik virtual scrolling yang benar).
+- **Definition of Done**: Verifikasi manual via Chrome DevTools Performance tab — frame rate saat scroll tetap mendekati 60fps; DOM node count via Elements panel konstan.
+- **Dependency**: Task 16.8.1, Task 16.3.2 (backend — data seed)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Should
+
+**Subtask & Checklist**:
+- [ ] Buka channel dengan data seed besar, scroll cepat naik-turun
+- [ ] Ukur frame rate (Performance tab) dan DOM node count (Elements panel)
+- [ ] Dokumentasikan hasil di laporan yang sama dengan Task 16.8.1
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 11 mencakup **1 Epic, 7 Feature, 13 task**, dengan sifat berbeda dari sprint sebelumnya: siklus ukur-identifikasi-perbaiki-ukur ulang, bukan bangun fitur baru.
+1. Sprint 11 mencakup **1 Epic, 8 Feature, 15 task**, dengan sifat berbeda dari sprint sebelumnya: siklus ukur-identifikasi-perbaiki-ukur ulang, bukan bangun fitur baru. *(Direvisi: ditambah Feature 16.8 — 2 Task frontend, amandemen retroaktif — Lighthouse audit, bundle size analysis, verifikasi empiris virtual scroll di bawah beban nyata.)*
 2. **Kandidat bottleneck sengaja tidak ditentukan di awal** (Task 16.4.1-16.4.3) — harus ditemukan dari data profiling nyata (Task 16.2.2), konsisten dengan prinsip "jangan optimasi spekulatif" (Learning Roadmap M11 Best Practice).
 3. Seluruh debt tuning yang sudah dikumpulkan sejak Sprint 3, 6, 9, 10 (tabel §0) **wajib** dituntaskan dengan data di sprint ini — bukan dibiarkan menumpuk lebih jauh.
 4. Benchmark cursor vs offset pagination (Task 16.3.2) memberi **pembuktian empiris** terhadap keputusan arsitektur yang sebelumnya hanya berbasis teori (Playbook §17.2) — memperkuat kredibilitas ADR dengan data nyata.
@@ -295,3 +332,4 @@ Sprint 11 **berbeda karakter** dari sprint sebelumnya — bukan membangun fitur 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 11: 1 Epic, 7 Feature, 13 task. Mengkonsolidasikan seluruh technical debt tuning dari Sprint 3-10, menerapkan siklus ukur-identifikasi-perbaiki-ukur ulang untuk minimal 3 bottleneck sesuai Sprint Goal Development Roadmap |
+| 1.1.0 | Amandemen | Ditambahkan Feature 16.8: Frontend Performance Audit (Lighthouse, bundle size, verifikasi virtual scroll) — amandemen retroaktif, menutup celah checkpoint optimasi yang sebelumnya hanya backend |

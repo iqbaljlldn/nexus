@@ -232,9 +232,20 @@ di `MessageService.Send` (Task 13.4.1). Ini bukan opsional — sudah dijanjikan 
 
 ---
 
+## Catatan Frontend *(amandemen retroaktif)*
+
+**Sprint ini tidak menambah task frontend baru** — dan ini keputusan sadar, bukan celah yang terlewat. Migrasi Outbox Pattern (Sprint 12) murni mengubah **jalur internal** trigger notifikasi (in-process call → event asynchronous), sementara kontrak yang dilihat frontend (event WS `notification.new`, format payload) **tidak berubah sama sekali** — inilah bukti nyata bahwa desain `NotificationDispatchService` sejak Sprint 8 (menerima payload lengkap, tidak peduli siapa pemanggilnya) memang berhasil mengisolasi perubahan arsitektur backend dari konsumen di luar boundary-nya, termasuk frontend.
+
+**Satu-satunya kewajiban frontend di sprint ini**: jalankan ulang **regression test Playwright Sprint 4-10** (skenario notifikasi khususnya, Task 14.3.1) terhadap topologi backend baru — memverifikasi klaim "tidak ada perubahan visible" di atas benar-benar teruji, bukan hanya diasumsikan.
+
+- [ ] Jalankan regression Playwright Sprint 4-10 terhadap topologi Event-Driven baru
+- [ ] Verifikasi khusus: skenario notifikasi (Task 14.3.1 Sprint 8) tetap lolos tanpa modifikasi test
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 12 mencakup **1 Epic, 7 Feature, 12 task**, menandai **transisi arsitektur nyata pertama** dalam proyek — Phase A → Phase B.
+1. Sprint 12 mencakup **1 Epic, 7 Feature, 12 task** (murni backend), menandai **transisi arsitektur nyata pertama** dalam proyek — Phase A → Phase B. *(Amandemen retroaktif: tidak ada task frontend baru — dicatat sebagai keputusan sadar, bukan celah, karena kontrak yang dilihat frontend tidak berubah. Kewajiban satu-satunya: regression test.)*
 2. TODO yang sengaja ditinggalkan sejak Sprint 8 (Task 13.4.1) **diresolusi tuntas** di Task 17.4.1 — bukti bahwa debt yang didokumentasikan dengan rencana pelunasan eksplisit benar-benar dilunasi, bukan dilupakan.
 3. `NotificationDispatchService` (dibuat Sprint 8) **tidak berubah sama sekali** saat migrasi ke event-driven (Task 17.5.1) — memvalidasi keputusan desain HLD §2.8 ("menerima payload lengkap, tidak query balik") yang sejak awal memang dirancang untuk memudahkan transisi ini.
 4. Broadcast WebSocket realtime pesan (Task 7.2.3 Sprint 4) **sengaja TIDAK diubah** menjadi asynchronous — tetap synchronous in-process, konsisten dengan HLD §3 (dibedakan tegas dari notifikasi yang memang asynchronous).
@@ -268,3 +279,4 @@ di `MessageService.Send` (Task 13.4.1). Ini bukan opsional — sudah dijanjikan 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 12: 1 Epic, 7 Feature, 12 task. Meresolusi TODO Sprint 8, mengimplementasikan Outbox Pattern penuh untuk 3 domain event kunci, menandai transisi resmi Phase A → Phase B |
+| 1.1.0 | Amandemen | Ditambahkan Catatan Frontend — dikonfirmasi tidak ada task baru diperlukan (kontrak WS tidak berubah), hanya regression test wajib |

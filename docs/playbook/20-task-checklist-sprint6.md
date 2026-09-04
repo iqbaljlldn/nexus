@@ -245,9 +245,82 @@ Sesuai **Rolling Wave Planning**, dokumen ini mendetailkan **Sprint 6** — bagi
 
 ---
 
+## EPIC 11: Frontend — Upload UI
+
+### Feature 11.1: File Upload dengan Progress
+
+#### Task 11.1.1: Drag-Drop & Pick File di Composer
+
+- **Deskripsi**: Perluas `MessageComposer.vue` (Task 8.2.3 Sprint 4) — area drop file, tombol pilih file, preview sebelum kirim.
+- **Acceptance Criteria**: Upload memakai `XMLHttpRequest`/`fetch` dengan progress event (`onUploadProgress` — `ofetch` tidak native mendukung ini, gunakan `axios` khusus untuk endpoint upload atau `XMLHttpRequest` manual) — progress bar menampilkan persentase real, bukan indikator indeterminate saja, penting untuk file besar hingga 1GB (FR-UP-01).
+- **Definition of Done**: E2E test: upload gambar kecil → progress 0→100% → attachment_id diterima; upload file > 1GB (simulasi/mock) → error jelas ditampilkan sebelum mengirim penuh (validasi ukuran client-side sebagai UX cepat, backend tetap validasi ulang — RULES.md §3).
+- **Dependency**: Task 8.2.3 (Sprint 4)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Area drag-drop + input file di `MessageComposer.vue`
+- [ ] Validasi ukuran/tipe file client-side (UX cepat, bukan pengganti validasi backend Task 10.3.1 Sprint 6)
+- [ ] Progress bar berbasis event upload real
+- [ ] E2E test: upload sukses dengan progress, file terlalu besar ditolak client-side dengan pesan jelas
+
+#### Task 11.1.2: Attachment Preview & Status Polling/WS
+
+- **Deskripsi**: Setelah upload (status `pending`), tampilkan placeholder loading di composer; setelah pemrosesan selesai (`media.ThumbnailGenerated` via WS, Task 10.5.1 backend), tampilkan thumbnail final.
+- **Acceptance Criteria**: **Prioritaskan WS event** (bukan polling) untuk update status — polling `GET /attachments/{id}` hanya sebagai fallback bila WS tidak tersedia/terputus saat itu.
+- **Definition of Done**: E2E test: upload gambar → placeholder loading tampil → event WS diterima → thumbnail muncul tanpa reload.
+- **Dependency**: Task 11.1.1, Task 8.1.2 (Sprint 4 — perluas event router dengan case `media.thumbnail_generated`)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Perluas event router (Task 8.1.2) dengan case `media.ThumbnailGenerated`
+- [ ] Komponen `AttachmentPreview.vue` (loading state → final state)
+- [ ] Fallback polling (interval wajar, mis. 3 detik, dengan batas maksimal percobaan) bila WS terputus
+- [ ] E2E test: alur upload→thumbnail muncul via WS
+
+#### Task 11.1.3: Tampilan Attachment di Pesan Terkirim
+
+- **Deskripsi**: `MessageItem.vue` (Sprint 4) diperluas menampilkan attachment (gambar inline, ikon+nama file untuk PDF/ZIP, audio/video player untuk media).
+- **Acceptance Criteria**: Gambar ditampilkan sebagai thumbnail yang dapat diklik untuk memperbesar (lightbox sederhana); tipe file lain ditampilkan sebagai kartu unduhan dengan ukuran file.
+- **Definition of Done**: E2E test: kirim pesan dengan attachment gambar → tampil sebagai thumbnail; attachment PDF → tampil sebagai kartu unduhan.
+- **Dependency**: Task 11.1.2
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Perluas `MessageItem.vue` — render attachment sesuai `mime_type`
+- [ ] Lightbox sederhana untuk gambar
+- [ ] Kartu unduhan untuk tipe file non-gambar
+- [ ] E2E test: kedua tipe render
+
+---
+
+### Feature 11.2: Integration Test End-to-End Frontend Sprint 6
+
+#### Task 11.2.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 10.8.1)
+
+- **Deskripsi**: Versi frontend dari skenario end-to-end backend Sprint 6.
+- **Acceptance Criteria**: Upload gambar via UI (drag-drop) → progress → thumbnail muncul via WS → kirim sebagai pesan → user lain (browser context lain) melihat pesan dengan attachment realtime.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut.
+- **Dependency**: Seluruh task Epic 11
+- **Estimasi Kesulitan**: Tinggi
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright penuh (upload → thumbnail → kirim → user lain menerima)
+- [ ] Jalankan 3x berturut, pastikan tidak flaky
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 6 frontend selesai bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 6 mencakup **1 Epic besar, 8 Feature, 12 task**, menuntaskan seluruh scope Upload & Media Processing sesuai FR-UP-01 s.d. 05.
+1. Sprint 6 mencakup **1 Epic besar, 8 Feature, 12 task** backend, menuntaskan seluruh scope Upload & Media Processing sesuai FR-UP-01 s.d. 05. *(Direvisi: ditambah Epic 11 — 2 Feature, 4 Task frontend, amandemen retroaktif — drag-drop upload dengan progress real, status update prioritas via WS bukan polling.)*
 2. Worker Asynq dijalankan sebagai **binary/container terpisah** (`cmd/worker/main.go`) sejak sprint ini — bukan goroutine di dalam `cmd/server` — secara sengaja mempersiapkan ekstraksi service Media (urutan ke-4, HLD §5) agar friksi ekstraksi nanti minimal.
 3. Task 10.3.1 (streaming upload) ditandai **Tinggi** dan diberi porsi waktu terbesar — ini titik paling kritikal untuk NFR (mencegah OOM pada file hingga 1GB dengan banyak upload paralel).
 4. Ekstraksi metadata video/audio (Task 10.5.2) didesain **best-effort** — kegagalannya tidak boleh menghalangi ketersediaan file asli, konsisten dengan FR-UP-04.
@@ -280,3 +353,4 @@ Sesuai **Rolling Wave Planning**, dokumen ini mendetailkan **Sprint 6** — bagi
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 6: 1 Epic, 8 Feature, 12 task, menuntaskan Upload & Media Processing dengan worker terpisah mempersiapkan ekstraksi service masa depan |
+| 1.1.0 | Amandemen | Ditambahkan Epic 11: Frontend (drag-drop upload dengan progress, attachment preview via WS, tampilan attachment di pesan) — amandemen retroaktif |

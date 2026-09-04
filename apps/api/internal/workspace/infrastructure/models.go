@@ -20,6 +20,27 @@ type Category struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type Channel struct {
+	ID             uuid.UUID      `json:"id"`
+	WorkspaceID    uuid.NullUUID  `json:"workspace_id"`
+	CategoryID     uuid.NullUUID  `json:"category_id"`
+	Type           string         `json:"type"`
+	Name           sql.NullString `json:"name"`
+	ParticipantKey sql.NullString `json:"participant_key"`
+	Position       int32          `json:"position"`
+	CreatedAt      time.Time      `json:"created_at"`
+	DeletedAt      sql.NullTime   `json:"deleted_at"`
+}
+
+type ChannelPermissionOverride struct {
+	ID           uuid.UUID     `json:"id"`
+	ChannelID    uuid.UUID     `json:"channel_id"`
+	RoleID       uuid.NullUUID `json:"role_id"`
+	MemberID     uuid.NullUUID `json:"member_id"`
+	AllowBitmask int64         `json:"allow_bitmask"`
+	DenyBitmask  int64         `json:"deny_bitmask"`
+}
+
 type Invite struct {
 	ID          uuid.UUID     `json:"id"`
 	WorkspaceID uuid.UUID     `json:"workspace_id"`

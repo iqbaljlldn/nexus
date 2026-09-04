@@ -8,12 +8,25 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/channel"
+	application5 "github.com/iqbaljlldn/nexus/apps/api/internal/channel/application"
+	infrastructure5 "github.com/iqbaljlldn/nexus/apps/api/internal/channel/infrastructure"
+	http5 "github.com/iqbaljlldn/nexus/apps/api/internal/channel/interface/http"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/health/transport/http"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity"
 	application2 "github.com/iqbaljlldn/nexus/apps/api/internal/identity/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/identity/infrastructure"
 	http2 "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
+	domain2 "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
+	infrastructure3 "github.com/iqbaljlldn/nexus/apps/api/internal/member/infrastructure"
+	application4 "github.com/iqbaljlldn/nexus/apps/api/internal/role/application"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
+	infrastructure4 "github.com/iqbaljlldn/nexus/apps/api/internal/role/infrastructure"
+	http4 "github.com/iqbaljlldn/nexus/apps/api/internal/role/interface/http"
+	application3 "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/application"
+	infrastructure2 "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/infrastructure"
+	http3 "github.com/iqbaljlldn/nexus/apps/api/internal/workspace/interface/http"
 	"github.com/iqbaljlldn/nexus/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -38,16 +51,77 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 	rateLimiter := identity.ProvideRateLimiter(redisClient)
 	loginRateLimiter := identity.ProvideLoginRateLimiter(rateLimiter, redisClient)
 	authHandler := http2.NewAuthHandler(authService, loginRateLimiter)
-	v := provideRouters(handler, authHandler)
+	workspaceRepository := infrastructure2.NewPostgresWorkspaceRepository(sqlDB)
+	memberRepository := infrastructure3.NewPostgresMemberRepository(sqlDB)
+	memberPort := provideMemberPort(memberRepository)
+	roleRepository := infrastructure4.NewPostgresRoleRepository(sqlDB)
+	rolePort := provideRolePort(roleRepository)
+	postgresTransactionManager := infrastructure2.NewPostgresTransactionManager(sqlDB)
+	workspaceService := application3.NewWorkspaceService(workspaceRepository, memberPort, rolePort, postgresTransactionManager, log)
+	inviteRepository := infrastructure2.NewPostgresInviteRepository(sqlDB)
+	inviteService := application3.NewInviteService(inviteRepository, memberPort, rolePort, postgresTransactionManager, log)
+	string2 := provideBaseURL()
+	workspaceHandler := http3.NewWorkspaceHandler(workspaceService, inviteService, string2)
+	transactionManager := provideRoleTxManager(postgresTransactionManager)
+	channelOverridePort := infrastructure2.NewPostgresChannelOverrideRepository(sqlDB)
+	permissionResolver := application3.NewPermissionResolver(channelOverridePort, rolePort)
+	cachedPermissionResolver := application3.NewCachedPermissionResolver(permissionResolver, redisClient, log)
+	permissionCacheInvalidator := provideRoleCacheInvalidator(cachedPermissionResolver)
+	roleService := application4.NewRoleService(roleRepository, transactionManager, permissionCacheInvalidator, log)
+	httpPermissionResolver := provideRolePermResolver(cachedPermissionResolver)
+	roleHandler := http4.NewRoleHandler(roleService, httpPermissionResolver)
+	dbtx := channel.ProvideDB(sqlDB)
+	postgresChannelRepository := infrastructure5.NewPostgresChannelRepository(dbtx)
+	channelService := application5.NewChannelService(postgresChannelRepository, log)
+	permissionResolver2 := provideChannelPermResolver(cachedPermissionResolver)
+	channelHandler := http5.NewChannelHandler(channelService, permissionResolver2)
+	v := provideRouters(handler, authHandler, workspaceHandler, roleHandler, channelHandler)
 	engine := NewRouter(log, v)
 	return engine
 }
 
 // wire.go:
 
-func provideRouters(healthRouter *http.Handler, identityRouter *http2.AuthHandler) []router.ModuleRouter {
+func provideRouters(
+	healthRouter *http.Handler,
+	identityRouter *http2.AuthHandler,
+	workspaceRouter *http3.WorkspaceHandler,
+	roleRouter *http4.RoleHandler,
+	channelRouter *http5.ChannelHandler,
+) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
 		identityRouter,
+		workspaceRouter,
+		roleRouter,
+		channelRouter,
 	}
+}
+
+func provideRoleTxManager(tm application3.TransactionManager) application4.TransactionManager {
+	return tm
+}
+
+func provideRoleCacheInvalidator(r *application3.CachedPermissionResolver) application4.PermissionCacheInvalidator {
+	return r
+}
+
+func provideRolePermResolver(r *application3.CachedPermissionResolver) http4.PermissionResolver {
+	return r
+}
+
+func provideChannelPermResolver(r *application3.CachedPermissionResolver) http5.PermissionResolver {
+	return r
+}
+
+func provideRolePort(repo domain.RoleRepository) application3.RolePort {
+	return repo
+}
+
+func provideBaseURL() string {
+	return "http://localhost:3000"
+}
+
+func provideMemberPort(repo domain2.MemberRepository) application3.MemberPort {
+	return repo
 }

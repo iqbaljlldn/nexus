@@ -110,3 +110,21 @@ func (c *CachedPermissionResolver) Resolve(ctx context.Context, userID, workspac
 
 	return allowed, nil
 }
+
+func (c *CachedPermissionResolver) InvalidateUserPermissions(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	// Pattern: perm:{workspaceID}:{userID}:*
+	pattern := fmt.Sprintf("perm:%s:%s:*", workspaceID.String(), userID.String())
+
+	iter := c.redisClient.Scan(ctx, 0, pattern, 0).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		if err := c.redisClient.Del(ctx, key).Err(); err != nil {
+			c.log.Error("failed to delete permission cache key", zap.Error(err), zap.String("key", key))
+			// Continue deleting other keys
+		}
+	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to scan permission cache keys: %w", err)
+	}
+	return nil
+}

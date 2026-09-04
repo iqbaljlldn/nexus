@@ -159,9 +159,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis migrasi `roles` (up & down)
-- [ ] Tulis migrasi `member_role_assignments` (up & down, composite PK)
-- [ ] Verifikasi index `position DESC`
+- [x] Tulis migrasi `roles` (up & down)
+- [x] Tulis migrasi `member_role_assignments` (up & down, composite PK)
+- [x] Verifikasi index `position DESC`
 
 #### Task 3.4.2: Definisi Permission Bitmask (Konstanta)
 
@@ -175,8 +175,8 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 
 **Subtask & Checklist**:
 - [x] Definisikan `type PermissionFlag int64` + konstanta `1 << iota`
-- [x] Fungsi `Has(flag)` dan bitwise operator (AND/OR) pada bitmask
-- [x] Unit test: manipulasi bitmask (OR, AND, XOR) berjalan sesuai prediksi tanpa bit collision
+- [x] Method `Has(flag)`, `Add(flag)`, `Remove(flag)` pada bitmask
+- [x] Unit test: tidak ada tabrakan bit, kombinasi flag bekerja benar
 
 #### Task 3.4.3: Handler — `POST /workspaces/{id}/roles`, Assignment Role ke Member
 
@@ -189,14 +189,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [x] Service layer logic
-- [x] `POST` → auto-assign `position = max(position) + 1` bila tidak diberikan
-- [x] `POST` → dilarang membuat role dengan `is_everyone = true` (hanya via pembuatan workspace)
-- [x] `PATCH` → replace seluruh assignment lama dengan array `role_ids` baru
-- [x] `PATCH` → wajib selalu meng-include role `@everyone` dalam assignment member, tidak boleh dihapus
 - [x] Handler `POST /workspaces/{id}/roles`
 - [x] Handler `PATCH /workspaces/{id}/members/{memberId}/roles`
-- [x] (TODO stub) Cek permission `MANAGE_ROLES` di handler (implementasi aktual menunggu Phase E)
+- [x] Test: create role custom, assign, verifikasi member memiliki role tersebut
 
 ---
 
@@ -251,9 +246,10 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Tulis migrasi `channels` lengkap dengan CHECK constraint (Database Design §2.3)
-- [ ] Tulis migrasi `channel_permission_overrides` dengan CHECK constraint XOR (`role_id`/`member_id`)
-- [ ] Test: insert channel invalid (text tanpa workspace_id) → ditolak; insert channel dm dengan workspace_id → ditolak
+- [x] Buat file migrasi up/down untuk tabel `channels`
+- [x] Buat file migrasi up/down untuk tabel `channel_permission_overrides`
+- [x] Verifikasi enum type ('text', 'voice', dll) dan constraint `chk_workspace_scoped_or_dm`
+- [x] Jalankan `golang-migrate` dan pastikan sukses di lokal
 
 #### Task 3.6.2: Handler — `POST /workspaces/{id}/channels` (Tipe Text)
 
@@ -266,9 +262,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `ChannelService.Create` (validasi `category_id` milik workspace yang sama bila diisi)
-- [ ] Handler `POST /workspaces/{id}/channels`
-- [ ] Test: create sukses (Owner), create ditolak (member tanpa permission)
+- [x] Implementasi `ChannelService.Create` (validasi `category_id` milik workspace yang sama bila diisi)
+- [x] Handler `POST /workspaces/{id}/channels`
+- [x] Test: create sukses (Owner), create ditolak (member tanpa permission)
 
 #### Task 3.6.3: Handler — `PATCH /channels/{id}/permission-overrides`
 
@@ -281,9 +277,9 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Handler `PATCH /channels/{id}/permission-overrides`
-- [ ] Validasi request: HARUS salah satu dari `role_id`/`member_id`, tidak boleh keduanya/tidak ada
-- [ ] Test: set override → verifikasi via Permission Resolver hasil berubah sesuai
+- [x] Handler `PATCH /channels/{id}/permission-overrides`
+- [x] Validasi request: HARUS salah satu dari `role_id`/`member_id`, tidak boleh keduanya/tidak ada
+- [x] Test: set override → verifikasi via Permission Resolver hasil berubah sesuai
 
 ---
 
@@ -311,9 +307,153 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 
 ---
 
+## EPIC 6: Frontend — Workspace, Channel, Layout Utama
+
+### Feature 6.1: Layout Utama & Server Sidebar
+
+#### Task 6.1.1: Layout `default.vue` — Server Sidebar + Channel Sidebar + Main Content
+
+- **Deskripsi**: Struktur layout khas Discord (Frontend Architecture §2) — sidebar kiri (daftar workspace/server), sidebar tengah (kategori/channel), area konten kanan.
+- **Acceptance Criteria**: Layout responsif dasar (tidak perlu sempurna mobile di sprint ini — cukup fungsional desktop-first, mobile responsiveness penuh dicatat sebagai debt untuk sprint UI-polish nanti bila ada).
+- **Definition of Done**: E2E test: navigasi antar workspace via sidebar mengubah channel sidebar sesuai workspace aktif.
+- **Dependency**: Task 3.4.1 (Sprint 2 — auto re-auth, layout hanya render setelah auth resolved)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `layouts/default.vue`
+- [ ] Komponen `ServerSidebar.vue` (daftar workspace, icon)
+- [ ] Komponen `ChannelSidebar.vue` (kategori + channel list, placeholder sebelum Task 6.2.2)
+- [ ] E2E test navigasi dasar
+
+#### Task 6.1.2: Pinia Store — `activeWorkspace.ts`
+
+- **Deskripsi**: State client "workspace/channel mana yang sedang dibuka" sesuai Frontend Architecture §3.1.
+- **Acceptance Criteria**: State ini **bukan** hasil fetch API (itu tanggung jawab TanStack Query) — murni penanda UI "sedang di mana".
+- **Definition of Done**: Unit test store: set/get `currentWorkspaceId`/`currentChannelId`.
+- **Dependency**: Task 6.1.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `stores/activeWorkspace.ts`
+- [ ] Unit test dasar
+
+---
+
+### Feature 6.2: Workspace & Invite UI
+
+#### Task 6.2.1: Halaman Buat/Lihat Workspace
+
+- **Deskripsi**: UI untuk `POST/GET /workspaces` (Task 3.2.1/3.2.2 backend).
+- **Acceptance Criteria**: Form buat workspace, daftar workspace milik user tampil di `ServerSidebar` (Task 6.1.1).
+- **Definition of Done**: E2E test: buat workspace baru → langsung muncul di sidebar tanpa reload manual (TanStack Query invalidation, Frontend Architecture §3.2).
+- **Dependency**: Task 6.1.1, Task 3.2.2 (backend)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Modal/halaman buat workspace dengan `useMutation`
+- [ ] `useQuery` daftar workspace, wire ke `ServerSidebar`
+- [ ] E2E test: buat → muncul otomatis
+
+#### Task 6.2.2: UI Invite — Generate & Redeem
+
+- **Deskripsi**: UI untuk `POST /workspaces/{id}/invites` dan `POST /invites/{code}/redeem` (Task 3.3.2 backend).
+- **Acceptance Criteria**: Redeem invite via halaman terpisah (`pages/invite/[code].vue`), mengirim `Idempotency-Key` header (client generate UUID per percobaan submit, sesuai Playbook §17.4 — bukan backend yang generate).
+- **Definition of Done**: E2E test: generate invite → link disalin → dibuka user lain → redeem berhasil → workspace muncul di sidebar user tersebut.
+- **Dependency**: Task 6.2.1, Task 3.3.2 (backend)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen generate invite (dengan opsi `max_uses`/`expires_in_hours`)
+- [ ] Halaman redeem invite (`pages/invite/[code].vue`) dengan `Idempotency-Key` generated client-side
+- [ ] E2E test alur penuh 2 user
+
+---
+
+### Feature 6.3: Role & Permission UI
+
+#### Task 6.3.1: Halaman Kelola Role (Owner/Admin)
+
+- **Deskripsi**: UI untuk `POST /workspaces/{id}/roles`, assignment role ke member (Task 3.4.3 backend).
+- **Acceptance Criteria**: Form buat role dengan checkbox per permission flag (bukan input bitmask mentah — UX harus menerjemahkan flag jadi label manusiawi, mapping dilakukan di frontend berdasarkan konstanta yang **disinkronkan manual** dengan `internal/workspace/domain/permission.go` backend — dicatat sebagai titik yang wajib diperbarui bersamaan setiap kali flag baru ditambah, RULES.md prinsip yang sama diterapkan lintas bahasa).
+- **Definition of Done**: E2E test: buat role custom → assign ke member → member tersebut menerima permission sesuai.
+- **Dependency**: Task 6.2.1, Task 3.4.3 (backend)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Konstanta permission flag di frontend (`constants/permissions.ts`) — **disinkronkan manual** dengan backend, komentar eksplisit mengingatkan hal ini
+- [ ] Form buat role (checkbox per flag)
+- [ ] UI assignment role ke member
+- [ ] E2E test alur penuh
+
+#### Task 6.3.2: Permission-Aware UI Rendering — Konsumsi `viewer_permissions`
+
+- **Deskripsi**: Implementasi `usePermission()` composable persis Frontend Architecture §7 — mengonsumsi field `viewer_permissions` dari response API (amandemen API Spec).
+- **Acceptance Criteria**: **RULES.md-consistent**: composable ini **tidak pernah** menghitung ulang logic resolusi permission — murni membaca field yang sudah dihitung backend. Tombol/aksi yang tidak diizinkan disembunyikan (UX), namun backend tetap jadi penjaga sesungguhnya (sudah ada sejak Sprint 3 backend, Task 3.5.1).
+- **Definition of Done**: Test: user dengan `viewer_permissions.can_manage_channel = false` tidak melihat tombol "Kelola Channel"; verifikasi manual bahwa mencoba memanggil endpoint tersebut langsung via network tab tetap ditolak backend (membuktikan frontend hanya UI hint, bukan satu-satunya lapisan proteksi).
+- **Dependency**: Task 6.3.1, amandemen API Spec §3 (`viewer_permissions`)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `composables/usePermission.ts` persis §7 Frontend Architecture
+- [ ] Terapkan di komponen channel/workspace settings (sembunyikan aksi tanpa izin)
+- [ ] Test: UI hint bekerja + verifikasi manual backend tetap menolak request langsung
+
+---
+
+### Feature 6.4: Channel UI
+
+#### Task 6.4.1: Buat & Tampilkan Channel (Tipe Text)
+
+- **Deskripsi**: UI untuk `POST /workspaces/{id}/channels` (Task 3.6.2 backend).
+- **Acceptance Criteria**: Channel baru muncul di `ChannelSidebar` (Task 6.1.1) sesuai kategori; klik channel mengubah `activeWorkspace.currentChannelId` (Task 6.1.2) dan URL (`pages/workspaces/[id]/channels/[channelId].vue`).
+- **Definition of Done**: E2E test: buat channel → muncul di sidebar → klik → URL berubah sesuai.
+- **Dependency**: Task 6.1.2, Task 3.6.2 (backend)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Modal buat channel (permission-aware, reuse Task 6.3.2)
+- [ ] `ChannelSidebar` menampilkan channel per kategori (reuse `useQuery`)
+- [ ] Routing dinamis `pages/workspaces/[id]/channels/[channelId].vue`
+- [ ] E2E test navigasi channel
+
+---
+
+### Feature 6.5: Integration Test End-to-End Frontend Sprint 3
+
+#### Task 6.5.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 3.7.1)
+
+- **Deskripsi**: Versi frontend dari skenario end-to-end backend Task 3.7.1 — memverifikasi UX-nya, bukan hanya API-nya.
+- **Acceptance Criteria**: Alur via UI sungguhan (Playwright, bukan panggil API langsung): User A buat workspace → invite User B via UI → User B redeem via UI → User A buat role "Restricted" tanpa `SEND_MESSAGES` via UI → assign ke User B via UI → User A buat channel privat dengan override via UI → User B login, channel tersebut **tidak muncul dapat diakses** di sidebar-nya (atau muncul namun composer pesan disembunyikan sesuai `viewer_permissions`).
+- **Definition of Done**: Test Playwright hijau konsisten 3x run berturut.
+- **Dependency**: Seluruh task Epic 6
+- **Estimasi Kesulitan**: Tinggi
+- **Estimasi Waktu**: 3.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Tulis skenario Playwright penuh (2 browser context simulasi 2 user)
+- [ ] Jalankan 3x berturut, pastikan tidak flaky
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 3 frontend selesai bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 3 mencakup **5 Feature inti (3.1-3.4, 3.6) + 1 Feature krusial (3.5 Permission Resolver) + 1 Feature verifikasi (3.7)**, total 13 task, menuntaskan Release 1 secara penuh.
+1. Sprint 3 mencakup **5 Feature inti (3.1-3.4, 3.6) + 1 Feature krusial (3.5 Permission Resolver) + 1 Feature verifikasi (3.7)**, total 13 task backend, menuntaskan Release 1 secara penuh. *(Direvisi: ditambah Epic 6 — 5 Feature, 9 Task frontend, amandemen retroaktif — Layout utama, Workspace/Invite/Role/Channel UI, dan permission-aware rendering yang mengonsumsi `viewer_permissions`.)*
 2. Skema `channels` disiapkan **lengkap dengan constraint tipe `dm`** sejak sprint ini (Task 3.6.1) meski fitur DM baru datang Sprint 4/5 — menghindari migrasi expand-contract yang tidak perlu nanti (konsisten dengan RULES.md §2 dan semangat proaktif Database Design).
 3. Task 3.5.1 (Permission Resolver) ditandai **Estimasi Kesulitan: Tinggi** dan diberi porsi waktu terbesar (4 jam) — ini komponen paling kritikal secara arsitektur di sprint ini karena dipakai oleh hampir seluruh domain berikutnya.
 4. Task 3.7.1 dijadikan **gerbang kelulusan Release 1** — bukan sekadar test biasa, tapi validasi langsung terhadap Development Roadmap.
@@ -344,3 +484,4 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 3: 13 task lengkap mencakup Workspace, Role/Permission Resolver, Channel, menuntaskan Release 1 dengan gerbang kelulusan end-to-end test |
+| 1.1.0 | Amandemen | Ditambahkan Epic 6: Frontend (Layout utama, Workspace/Invite/Role/Channel UI, permission-aware rendering via `viewer_permissions`) — amandemen retroaktif, menutup celah cakupan frontend |

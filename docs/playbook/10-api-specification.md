@@ -2,8 +2,8 @@
 ## Project: Nexus — Discord-like Realtime Platform
 
 **Dokumen:** Phase 6 — API Specification
-**Versi:** 1.0.0
-**Status:** Draft — Menunggu Persetujuan
+**Versi:** 1.1.0
+**Status:** Accepted (amandemen — lihat Changelog)
 **Referensi Wajib:** `01-engineering-playbook.md` (§17 API Convention), `06-srs.md` (v1.1.0), `08-lld.md`, `09-database-design.md`
 **Klasifikasi:** Internal — Source of Truth
 
@@ -65,7 +65,7 @@
 - **Response 200**: access & refresh token baru (rotated — FR-AUTH-04); refresh token lama otomatis `revoked`.
 - **Error**: `401 UNAUTHORIZED` (refresh token invalid/revoked/expired).
 
-### `POST /api/v1/auth/logout` *(amandemen — FR-AUTH-08, diimplementasikan)*
+### `POST /api/v1/auth/logout` *(amandemen — FR-AUTH-08)*
 
 - **Auth**: Wajib
 - **Request**: kosong — refresh token diambil dari cookie HttpOnly pada request ini sendiri (bukan dari body/path), sehingga client tidak perlu tahu/menyimpan `sessionId`.
@@ -133,6 +133,17 @@
 ---
 
 ## 3. Channel
+
+> **Amandemen (Frontend Architecture §7)**: Setiap response objek Channel (dan Workspace) menyertakan field `viewer_permissions` — hasil resolusi Permission Resolver backend (LLD §2.1) untuk user yang sedang melakukan request, dalam bentuk boolean flags siap pakai:
+> ```json
+> "viewer_permissions": {
+>   "can_send_message": true,
+>   "can_manage_channel": false,
+>   "can_manage_roles": false,
+>   "can_manage_messages": true
+> }
+> ```
+> **Rationale**: mencegah frontend mereplikasi algoritma resolusi permission 4-tingkat (menghindari drift antara logic frontend dan backend) — frontend murni memakai hasil ini sebagai UI hint, backend tetap melakukan pengecekan ulang di setiap endpoint yang relevan (Security Design §3, tidak berubah). Field ini dihitung sekali oleh `PermissionResolver` (sudah ada sejak Sprint 3) dan disisipkan di response serializer — bukan endpoint terpisah.
 
 ### `POST /api/v1/workspaces/{workspaceId}/channels`
 
@@ -353,3 +364,4 @@
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen pertama Phase 6, mencakup endpoint representative seluruh domain (termasuk DM) dan WebSocket protocol lengkap |
+| 1.1.0 | Amandemen | Ditambahkan field `viewer_permissions` di response Channel/Workspace (Frontend Architecture §7) dan endpoint `POST /auth/logout` (FR-AUTH-08) |

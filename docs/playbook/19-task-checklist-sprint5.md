@@ -247,9 +247,137 @@ Melanjutkan pemecahan Release 2 dari `18-task-checklist-sprint4.md` §0. Sprint 
 
 ---
 
+## EPIC 10: Frontend — Messaging Advanced & Direct Message UI
+
+### Feature 10.1: Reply & Thread UI
+
+#### Task 10.1.1: UI Reply — Quote Preview di Composer
+
+- **Deskripsi**: UI untuk kirim pesan dengan `reply_to_id` (Task 8.1.1 Sprint 4 backend equivalent).
+- **Acceptance Criteria**: Klik "Reply" pada `MessageItem` menampilkan preview pesan yang dibalas di atas composer; pesan yang sudah soft-deleted tetap menampilkan "membalas pesan yang telah dihapus" (FR-MSG-03, ditangani di frontend sesuai catatan LLD/SRS — backend tidak menolak reply ke pesan terhapus).
+- **Definition of Done**: E2E test: reply ke pesan aktif → quote tampil di pesan terkirim; reply ke pesan yang lalu dihapus pihak lain → tetap terkirim dengan indikator "pesan dihapus".
+- **Dependency**: Task 8.2.3 (Sprint 4)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] State reply-target di `MessageComposer.vue` (local `ref`, bukan Pinia — state UI sementara)
+- [ ] Komponen quote preview di atas composer dan di `MessageItem` (pesan yang membalas)
+- [ ] Handle kasus pesan target soft-deleted
+- [ ] E2E test: 2 skenario
+
+#### Task 10.1.2: Thread Panel (Side Panel)
+
+- **Deskripsi**: UI untuk `POST/GET /messages/{id}/threads` (Task 8.2.1/8.2.2 backend Sprint 5).
+- **Acceptance Criteria**: Klik "Thread" pada pesan membuka panel samping (bukan navigasi halaman penuh — pola khas Discord), reuse `MessageList.vue`/`useMessages` (Sprint 4) dengan parameter thread root, bukan channel biasa.
+- **Definition of Done**: E2E test: buat thread dari pesan → kirim balasan di panel → balasan **tidak** muncul di aliran utama channel (terisolasi).
+- **Dependency**: Task 10.1.1, Task 8.2.2 (Sprint 4)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen `ThreadPanel.vue` (side panel, reuse `MessageList`/`MessageComposer`)
+- [ ] Perluas `useMessages` menerima `threadRootId` opsional (query key berbeda dari channel biasa)
+- [ ] E2E test: isolasi thread dari channel utama
+
+---
+
+### Feature 10.2: Mention & Reaction UI
+
+#### Task 10.2.1: Mention Autocomplete di Composer
+
+- **Deskripsi**: UI mengetik `@` memicu dropdown daftar member/role (dari `viewer_permissions`/member list yang sudah di-fetch), memilih mention menyisipkan referensi user ID ke payload kirim (FR-MSG-05 — backend menerima daftar ID eksplisit, bukan parsing teks, sesuai keputusan Frontend Architecture/LLD §2.3 Sprint 5).
+- **Acceptance Criteria**: Opsi "@everyone"/"@here" hanya muncul di dropdown bila `viewer_permissions.can_mention_everyone` true (permission baru `MENTION_EVERYONE`, Task 8.3.1 Sprint 5 backend).
+- **Definition of Done**: E2E test: mention user → notifikasi (Sprint 8) nantinya terverifikasi terpicu; mention everyone tanpa permission → opsi tidak muncul di dropdown (dan bila dipaksa via manipulasi payload, backend tetap menolak — regression check).
+- **Dependency**: Task 10.1.2, Task 8.3.1 (backend)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen `MentionDropdown.vue` (Floating UI untuk positioning, sesuai stack)
+- [ ] Deteksi trigger `@` di composer, filter member/role by nama
+- [ ] Sisipkan referensi ID (bukan teks bebas) ke payload `mentions`
+- [ ] Kondisional tampil opsi `@everyone`/`@here` sesuai `viewer_permissions`
+- [ ] E2E test: mention biasa, mention everyone dengan/tanpa izin
+
+#### Task 10.2.2: Reaction Picker & Display
+
+- **Deskripsi**: UI untuk `PUT/DELETE /messages/{id}/reactions/{emoji}` (Task 8.4.1 backend Sprint 5).
+- **Acceptance Criteria**: Klik emoji yang sudah ada di pesan (toggle add/remove); tombol "+" membuka emoji picker untuk emoji baru. Idempotent di sisi UI juga — klik cepat berulang tidak mengirim request duplikat tak perlu (debounce/disable sementara saat request in-flight).
+- **Definition of Done**: E2E test: react → muncul; react lagi (toggle) → hilang; race condition klik cepat tidak menghasilkan state UI yang salah.
+- **Dependency**: Task 10.2.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen `ReactionPicker.vue` + `ReactionBadge.vue` (tampil di bawah `MessageItem`)
+- [ ] Toggle add/remove dengan optimistic update
+- [ ] Handle event WS `message.reaction_added`/`reaction_removed` (perluas Task 8.1.2 Sprint 4 event router)
+- [ ] E2E test: toggle, race condition klik cepat
+
+---
+
+### Feature 10.3: Direct Message UI
+
+#### Task 10.3.1: Halaman Daftar DM & Buat DM Baru
+
+- **Deskripsi**: UI untuk `POST /dm` (Task 9.3.2 backend) — cari user, mulai 1-on-1 atau grup (maks 10).
+- **Acceptance Criteria**: Search user (reuse pola pencarian, belum ada endpoint search khusus di sprint ini — sementara memakai list member yang sudah di-fetch dalam workspace bersama, pencarian user lintas-platform menyusul di fitur Search); mengirim `Idempotency-Key` client-generated (konsisten Task 6.2.2 Sprint 3).
+- **Definition of Done**: E2E test: buat DM 1-on-1 ke user yang sama 2x → channel yang sama dibuka (bukan duplikat, verifikasi UX mencerminkan idempotency backend FR-DM-02).
+- **Dependency**: Task 10.1.2 (reuse `MessageList`/`MessageComposer` untuk DM, karena backend memodelkan DM sebagai Channel biasa — PRD §6.9 rationale, direfleksikan konsisten di frontend: **tidak ada komponen Message terpisah untuk DM**)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Halaman `pages/dm/[channelId].vue` — **reuse penuh** `MessageList.vue`/`MessageComposer.vue`/`useMessages` (bukan komponen baru, konsisten dengan desain backend DM = Channel)
+- [ ] Modal buat DM baru (pilih 1 user = 1-on-1, pilih 2-10 = grup)
+- [ ] Sidebar daftar DM aktif (mirip `ChannelSidebar` tapi scope personal, bukan workspace)
+- [ ] E2E test: idempotency UX untuk 1-on-1
+
+#### Task 10.3.2: UI Block/Unblock User
+
+- **Deskripsi**: UI untuk `POST/DELETE /users/{userId}/block` (Task 9.4.1 backend).
+- **Acceptance Criteria**: Tombol block di profil user/context menu DM; user yang diblokir tidak dapat mengirim pesan ke DM tersebut — composer disabled dengan pesan jelas ("Anda telah memblokir user ini" / pesan setara dari sisi yang diblokir bila berlaku, sesuai FR-DM-04).
+- **Definition of Done**: E2E test: blokir user → composer di DM tersebut disabled untuk kedua sisi sesuai arah block (directional, bukan simetris — Database Design §2.3 catatan).
+- **Dependency**: Task 10.3.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Tombol block/unblock (context menu atau halaman profil)
+- [ ] Composer disabled state dengan pesan jelas saat block aktif
+- [ ] E2E test: verifikasi directional (A blokir B → B tidak bisa kirim ke A, tapi A masih bisa mengirim ke B bila ingin — sesuai FR-DM-04 arah block)
+
+---
+
+### Feature 10.4: Integration Test End-to-End Frontend Sprint 5
+
+#### Task 10.4.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 9.5.1)
+
+- **Deskripsi**: Versi frontend dari skenario end-to-end backend Sprint 5.
+- **Acceptance Criteria**: Alur via UI: reply, thread, mention, reaction, DM, block — persis skenario (a)-(f) Task 9.5.1 backend namun dieksekusi lewat interaksi UI sungguhan (Playwright), bukan panggil API langsung.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut.
+- **Dependency**: Seluruh task Epic 10
+- **Estimasi Kesulitan**: Tinggi
+- **Estimasi Waktu**: 4 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright penuh (reply, thread, mention, reaction, DM, block)
+- [ ] Jalankan 3x berturut, pastikan tidak flaky
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 5 frontend selesai bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 5 menuntaskan **2 Epic (8, 9), 9 Feature, 13 task**, melengkapi seluruh scope Messaging (reply/thread/mention/reaction) dan Direct Message yang menjadi amandemen resmi PRD v1.1.
+1. Sprint 5 menuntaskan **2 Epic (8, 9), 9 Feature, 13 task** backend, melengkapi seluruh scope Messaging (reply/thread/mention/reaction) dan Direct Message yang menjadi amandemen resmi PRD v1.1. *(Direvisi: ditambah Epic 10 — 4 Feature, 8 Task frontend, amandemen retroaktif. Poin desain penting: DM di frontend **reuse penuh** komponen `MessageList`/`MessageComposer` — tidak ada komponen terpisah, mencerminkan konsisten keputusan backend bahwa DM adalah varian Channel, bukan domain baru.)*
 2. Parsing mention **dilakukan di frontend** (backend hanya menerima daftar ID eksplisit) — keputusan pragmatis yang menghindari kompleksitas regex parsing markdown di server, konsisten dengan *Simplicity over Cleverness*.
 3. Urutan pengecekan di `DMService.CreateOrFind` (Task 9.3.1) **wajib** cek block sebelum cek uniqueness — menutup risiko kebocoran informasi yang sudah diidentifikasi sejak API Specification §Risiko.
 4. Reaction idempotent diimplementasikan di level **database** (`ON CONFLICT DO NOTHING`), bukan di application layer — lebih robust terhadap race condition dibanding cek-lalu-insert di kode Go.
@@ -279,3 +407,4 @@ Melanjutkan pemecahan Release 2 dari `18-task-checklist-sprint4.md` §0. Sprint 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 5: 2 Epic (Messaging Advanced, Direct Message), 9 Feature, 13 task, menuntaskan sisa scope Messaging dan seluruh scope DM dari Release 2 |
+| 1.1.0 | Amandemen | Ditambahkan Epic 10: Frontend (reply/thread UI, mention autocomplete, reaction picker, DM UI dengan reuse komponen Message) — amandemen retroaktif |

@@ -2,8 +2,8 @@
 ## Project: Nexus — Discord-like Realtime Platform
 
 **Dokumen:** Phase 11 — Detailed Task Checklist (Sprint 10: Video)
-**Versi:** 1.0.0
-**Status:** Draft — Menunggu Persetujuan
+**Versi:** 1.1.0
+**Status:** Accepted (amandemen frontend — lihat Changelog)
 **Referensi Wajib:** `23-task-checklist-sprint9.md` (v1.1), `06-srs.md` (Learning Roadmap M10), `07-hld.md` (§2.12, revisi), `09-database-design.md` (§2.7, revisi), `10-api-specification.md` (§3), `12-deployment-architecture.md` (§8)
 **Klasifikasi:** Internal — Source of Truth
 
@@ -115,9 +115,96 @@
 
 ---
 
+## EPIC 16: Frontend — Video UI
+
+### Feature 16.1: Generalisasi `useVoiceRoom` → `useRtcRoom`
+
+#### Task 16.1.1: Rename & Perluas Composable Sesuai Amandemen Backend (`/rtc/join`)
+
+- **Deskripsi**: Mengikuti generalisasi backend (Task 15.1.1 backend) — `useVoiceRoom` (Sprint 9) di-rename `useRtcRoom`, dipakai untuk channel `voice` **dan** `video` tanpa cabang logic berbeda (persis temuan reusability yang sama di backend).
+- **Acceptance Criteria**: Satu composable, satu set komponen, dipakai untuk kedua tipe channel — perbedaan hanya di UI mana yang ditampilkan (grid video vs daftar avatar audio-only).
+- **Definition of Done**: Regression test Sprint 9 (Task 15.2.1 frontend) tetap lolos dengan nama composable baru.
+- **Dependency**: Task 15.1.1 (Sprint 9 frontend), Task 16.1.1 backend (Sprint 10)
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Rename `useVoiceRoom.ts` → `useRtcRoom.ts`, update seluruh pemanggil
+- [ ] Update path panggilan API ke `/rtc/join` (mengikuti amandemen backend)
+- [ ] Regression test Sprint 9 dengan nama baru tetap lolos
+
+### Feature 16.2: Video Grid & Screen Share
+
+#### Task 16.2.1: `VoiceParticipantGrid.vue` → Mode Video (Camera Tiles)
+
+- **Deskripsi**: Perluas Task 15.1.2 (Sprint 9) — saat channel tipe `video`, tampilkan tile video (elemen `<video>` per partisipan, subscribe track LiveKit) alih-alih hanya avatar.
+- **Acceptance Criteria**: Layout grid menyesuaikan jumlah partisipan aktif (1, 2-4, 5+ partisipan beda tata letak); partisipan tanpa kamera menyala tetap tampil sebagai avatar placeholder.
+- **Definition of Done**: E2E test (mock SDK track events): partisipan baru dengan video track → tile baru muncul di grid.
+- **Dependency**: Task 16.1.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Perluas komponen jadi mode-aware (`voice` vs `video`)
+- [ ] Subscribe/attach video track LiveKit ke elemen `<video>` per tile
+- [ ] Layout grid responsif jumlah partisipan
+- [ ] E2E test dengan mock track events
+
+#### Task 16.2.2: Tombol Screen Share (Permission-Aware)
+
+- **Deskripsi**: UI untuk `toggleScreenShare` (§8 Frontend Architecture) — tombol hanya aktif/terlihat sesuai `viewer_permissions.can_share_screen` (perluasan field, konsisten §7).
+- **Acceptance Criteria**: User tanpa permission tidak melihat tombol; user dengan permission mencoba share → LiveKit SDK reject bila grant token ternyata tidak sesuai (pengaman berlapis, backend Task 15.2.1 sudah menegakkan ini di level token).
+- **Definition of Done**: E2E test: tombol tersembunyi untuk user tanpa izin; tombol berfungsi untuk user dengan izin (mock SDK).
+- **Dependency**: Task 16.2.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Perluas `viewer_permissions` yang dikonsumsi dengan `can_share_screen`
+- [ ] Tombol screen share kondisional
+- [ ] E2E test 2 skenario
+
+#### Task 16.2.3: Pesan Error saat Batas Partisipan Terlampaui
+
+- **Deskripsi**: UI untuk menangani `422 BUSINESS_RULE_VIOLATION` dari Task 15.3.2 backend (batas 10 partisipan video).
+- **Acceptance Criteria**: Pesan jelas ke user ("Channel video ini sudah penuh"), bukan error generik.
+- **Definition of Done**: E2E test: simulasikan batas terlampaui → pesan spesifik ditampilkan.
+- **Dependency**: Task 16.1.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Handler error spesifik untuk kode `BUSINESS_RULE_VIOLATION` di konteks join video
+- [ ] E2E test
+
+---
+
+### Feature 16.3: Integration Test End-to-End Frontend Sprint 10
+
+#### Task 16.3.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 15.4.1)
+
+- **Deskripsi**: Versi frontend.
+- **Acceptance Criteria**: Join video dengan/tanpa permission screen share → grant token sesuai; batas partisipan terlampaui → pesan jelas.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut; **regression Sprint 9 frontend** (voice) tetap lolos dengan nama composable baru.
+- **Dependency**: Seluruh task Epic 16
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright penuh
+- [ ] Regression Sprint 9 frontend
+- [ ] Update `docs/AGENTS.md` §7 — Sprint 10 frontend selesai, **Release 3 Frontend selesai penuh**
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 10 mencakup **1 Epic, 4 Feature, 6 task** — jauh lebih ringkas dari sprint-sprint sebelumnya, karena **temuan penting**: revisi Sprint 9 (channel = room permanen) membuat infrastruktur voice sudah generic untuk video tanpa perubahan besar.
+1. Sprint 10 mencakup **1 Epic, 4 Feature, 6 task** backend — jauh lebih ringkas dari sprint-sprint sebelumnya, karena **temuan penting**: revisi Sprint 9 (channel = room permanen) membuat infrastruktur voice sudah generic untuk video tanpa perubahan besar. *(Direvisi: ditambah Epic 16 — 3 Feature, 6 Task frontend, amandemen retroaktif — sama-sama menemukan reusability tinggi: `useVoiceRoom` cukup di-rename `useRtcRoom`, bukan dibangun ulang.)*
 2. **Amandemen API Specification**: endpoint `/voice/join`, `/voice/participants` digeneralisasi menjadi `/rtc/join`, `/rtc/participants` — mengurangi duplikasi kode nyata (bukan sekadar rename kosmetik), berlaku untuk channel tipe `voice` maupun `video`.
 3. Screen share **bukan endpoint terpisah** — cukup grant tambahan di token (`SHARE_SCREEN` permission), penegakan aktual dilakukan LiveKit sendiri di level SFU (bukan hanya UI hiding), konsisten dengan prinsip authorization backend-enforced.
 4. Simulcast dikonfigurasi di level **LiveKit server config**, bukan diimplementasikan sendiri — konsisten dengan rationale ADR-005 (LiveKit dipilih agar tidak membangun SFU dari nol).
@@ -148,3 +235,4 @@
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 10: 1 Epic, 4 Feature, 6 task. Menemukan dan memanfaatkan reusability tinggi dari revisi Sprint 9, menggeneralisasi endpoint voice/video menjadi `/rtc/*` |
+| 1.1.0 | Amandemen | Ditambahkan Epic 16: Frontend (`useRtcRoom` generalisasi, video grid, screen share permission-aware, error handling batas partisipan) — amandemen retroaktif, menutup cakupan frontend Release 3 |

@@ -170,9 +170,115 @@ Sprint 7 adalah **sprint terakhir Release 2** (Sprint Planning §2: "M7 Presence
 
 ---
 
+## EPIC 13: Frontend — Presence & Realtime Signal UI
+
+### Feature 13.1: Presence Indicator
+
+#### Task 13.1.1: Komponen `PresenceIndicator.vue` & Pinia `presence.ts`
+
+- **Deskripsi**: Implementasi persis Frontend Architecture §3.1 — presence realtime didorong WS ke Pinia store (bukan TanStack Query, karena bukan hasil fetch REST melainkan push).
+- **Acceptance Criteria**: Titik indikator warna (hijau/kuning/merah/abu-abu) di avatar user, sesuai status `online/idle/dnd/offline`; perluas event router (Task 8.1.2 Sprint 4) dengan case `presence.updated`.
+- **Definition of Done**: E2E test: User A ubah status → User B (browser context lain, workspace sama) melihat indikator berubah tanpa refresh.
+- **Dependency**: Task 8.1.2 (Sprint 4)
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `stores/presence.ts` (`statusByUserId: Map`)
+- [ ] Perluas event router — case `presence.updated`
+- [ ] Komponen `PresenceIndicator.vue` (dot warna di avatar)
+- [ ] E2E test: 2 context, perubahan status realtime
+
+#### Task 13.1.2: Selector Status Manual (Online/Idle/DND/Invisible)
+
+- **Deskripsi**: UI dropdown di profil user untuk mengirim event `presence.set_status` (§10 API Spec WS Protocol).
+- **Acceptance Criteria**: Pilih "Invisible" → status sendiri tetap terlihat sebagai "Invisible" di UI milik sendiri, namun user lain melihatnya "Offline" (FR-PRES-01, masking di backend — frontend tidak perlu logic tambahan, cukup menampilkan apa yang dikembalikan API/WS apa adanya).
+- **Definition of Done**: E2E test: set invisible → viewer lain melihat offline, pemilik akun melihat "Invisible" di dropdown-nya sendiri.
+- **Dependency**: Task 13.1.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1.5 jam
+- **Prioritas**: Should
+
+**Subtask & Checklist**:
+- [ ] Dropdown selector status di komponen profil
+- [ ] Kirim event `presence.set_status` via `useWebSocket`
+- [ ] E2E test: masking invisible sesuai perspektif viewer
+
+#### Task 13.1.3: Heartbeat Client-Side
+
+- **Deskripsi**: Kirim event `heartbeat` setiap 15 detik (FR-PRES-02) selama koneksi WS aktif.
+- **Acceptance Criteria**: Interval berjalan otomatis sejak koneksi WS terbuka, berhenti saat koneksi ditutup (mencegah interval menumpuk/leak saat reconnect berulang).
+- **Definition of Done**: Test: verifikasi heartbeat terkirim tepat setiap 15 detik; verifikasi tidak ada interval ganda setelah reconnect.
+- **Dependency**: Task 8.1.1 (Sprint 4)
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] `setInterval` heartbeat di `useWebSocket`, di-clear saat disconnect/reconnect (cegah leak)
+- [ ] Test: interval tepat, tidak ada duplikasi setelah reconnect
+
+---
+
+### Feature 13.2: Typing Indicator & Read Receipt
+
+#### Task 13.2.1: UI Typing Indicator dengan Auto-Timeout Client-Side
+
+- **Deskripsi**: Implementasi persis FR-PRES-03 — kirim `typing.start` saat mengetik (debounced), tampilkan indikator dari user lain dengan **timeout 5 detik di client** (bukan menunggu sinyal "stop typing" dari server — server memang tidak pernah mengirim itu, sesuai desain stateless backend Sprint 7).
+- **Acceptance Criteria**: Mengetik di composer → user lain melihat "sedang mengetik..." → berhenti mengetik 5 detik → indikator hilang otomatis di sisi client tanpa event tambahan dari server.
+- **Definition of Done**: E2E test: User A mengetik → User B melihat indikator; User A berhenti → indikator hilang otomatis setelah ~5 detik di sisi User B.
+- **Dependency**: Task 8.1.2 (Sprint 4)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Composer memicu `typing.start` (debounced, tidak setiap keystroke — mis. throttle 2 detik) via `useWebSocket`
+- [ ] Perluas event router — case `typing.updated`, simpan dengan `setTimeout` 5 detik auto-clear per user per channel
+- [ ] Komponen indikator "X sedang mengetik..." di bawah `MessageList`
+- [ ] E2E test: tampil & hilang otomatis
+
+#### Task 13.2.2: Read Receipt UI
+
+- **Deskripsi**: UI untuk `PUT /channels/{id}/read-receipt` (Task 12.2.1 backend, amandemen Sprint 7).
+- **Acceptance Criteria**: Kirim update read receipt saat channel di-scroll ke pesan terbaru (atau saat channel dibuka); tampilkan indikator "dibaca" pada pesan terakhir yang dikirim (reuse event WS `read_receipt.updated`, Task 12.2.2 backend).
+- **Definition of Done**: E2E test: User A kirim pesan, User B buka channel (baca) → User A melihat indikator "dibaca" muncul realtime.
+- **Dependency**: Task 13.2.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Should *(selaras prioritas backend-nya)*
+
+**Subtask & Checklist**:
+- [ ] Trigger update read receipt saat channel dibuka/pesan terbaru terlihat (Intersection Observer atau event scroll sederhana)
+- [ ] Perluas event router — case `read_receipt.updated`
+- [ ] Indikator "dibaca" di `MessageItem` (untuk pesan milik sendiri)
+- [ ] E2E test: alur baca realtime
+
+---
+
+### Feature 13.3: Integration Test End-to-End Frontend Sprint 7
+
+#### Task 13.3.1: Skenario Penuh — Mencerminkan Gerbang Backend (Task 12.3.1)
+
+- **Deskripsi**: Versi frontend dari skenario end-to-end backend, sekaligus regression check terhadap Sprint 4-6 frontend.
+- **Acceptance Criteria**: Alur presence, typing, read receipt via UI sungguhan — persis skenario (a)-(e) Task 12.3.1 backend.
+- **Definition of Done**: Playwright test hijau konsisten 3x run berturut; regression Sprint 4-6 frontend tetap lolos.
+- **Dependency**: Seluruh task Epic 13
+- **Estimasi Kesulitan**: Sedang-Tinggi
+- **Estimasi Waktu**: 3 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Skenario Playwright penuh (a)-(e)
+- [ ] Jalankan regression Playwright Sprint 4-6
+- [ ] Update `docs/AGENTS.md` §7 — Release 2 Frontend selesai penuh bersamaan backend
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 7 mencakup **2 Epic, 5 Feature, 7 task**, menuntaskan seluruh scope Presence & Realtime Signal sekaligus **menutup Release 2 secara keseluruhan**.
+1. Sprint 7 mencakup **2 Epic, 5 Feature, 7 task** backend, menuntaskan seluruh scope Presence & Realtime Signal sekaligus **menutup Release 2 secara keseluruhan**. *(Direvisi: ditambah Epic 13 — 3 Feature, 6 Task frontend, amandemen retroaktif. Dengan ini, seluruh Release 2 — Sprint 4-7 — punya cakupan frontend penuh.)*
 2. Typing indicator (Task 12.1.1) diimplementasikan sepenuhnya **stateless** di server — tidak ada penulisan ke Redis maupun PostgreSQL, murni broadcast pass-through, konsisten dengan keputusan HLD §3.
 3. Status `invisible` (Task 11.1.2) ditangani lewat **logic masking di service layer** (satu key Redis, ditampilkan berbeda tergantung viewer), bukan dua state terpisah — desain lebih sederhana dan konsisten.
 4. Endpoint read receipt (Task 12.2.1) adalah **amandemen kecil** terhadap API Specification — dicatat eksplisit agar dokumen tetap konsisten sebagai Source of Truth.
@@ -204,3 +310,4 @@ Sprint 7 adalah **sprint terakhir Release 2** (Sprint Planning §2: "M7 Presence
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 7: 2 Epic, 5 Feature, 7 task, menuntaskan Presence & Realtime Signal sekaligus menutup Release 2 dengan regression check menyeluruh |
+| 1.1.0 | Amandemen | Ditambahkan Epic 13: Frontend (presence indicator, status selector, heartbeat client, typing indicator dengan auto-timeout, read receipt UI) — amandemen retroaktif, menutup cakupan frontend Release 2 |

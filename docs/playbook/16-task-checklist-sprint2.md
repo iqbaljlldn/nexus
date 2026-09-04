@@ -207,7 +207,7 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 
 **Subtask & Checklist**:
 - [x] Handler cek kepemilikan sesi sebelum revoke
-- [x] Query sqlc `RevokeSessionByID` (beserta `FindSessionById` untuk cek kepemilikan)
+- [ ] Query sqlc `RevokeSessionByID`
 - [x] Test: revoke sesi sendiri berhasil, revoke sesi orang lain ditolak
 
 ---
@@ -267,9 +267,62 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 
 ---
 
+## EPIC 3 (lanjutan): Frontend — Login, Session, Refresh Flow
+
+### Feature 3.3: Halaman Login
+
+#### Task 3.3.1: Halaman `login.vue`
+
+- **Deskripsi**: Form login terhubung ke `POST /auth/login` (Task 2.4.3). *(Ditunda dari Sprint 1 karena bergantung backend sprint ini — lihat catatan `15-task-checklist-sprint1.md`)*.
+- **Acceptance Criteria**: Setelah login sukses, `session` store terisi (`accessToken`, `user`), redirect ke halaman workspace (placeholder route bila workspace belum ada — Sprint 3).
+- **Definition of Done**: E2E test: login sukses → redirect; kredensial salah → pesan error generik ditampilkan (konsisten FR-AUTH-03, frontend tidak menambah informasi pembeda penyebab).
+- **Dependency**: Task 3.1.3 (Sprint 1), Task 2.4.3
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen form login (`pages/login.vue`)
+- [ ] Wire ke `session` store setelah sukses
+- [ ] E2E test: sukses & gagal
+
+### Feature 3.4: Refresh Flow & Auto Re-auth
+
+#### Task 3.4.1: Auto Re-auth Saat App Mount
+
+- **Deskripsi**: Karena access token murni in-memory (Task 3.1.3 Sprint 1, hilang saat refresh browser), app perlu mencoba refresh otomatis via cookie saat pertama kali dimuat — sebelum menganggap user "belum login".
+- **Acceptance Criteria**: Saat browser di-refresh dengan cookie refresh token masih valid → user tetap dianggap login tanpa perlu mengisi form lagi; cookie invalid/tidak ada → tetap di halaman login.
+- **Definition of Done**: E2E test: login → refresh browser (F5) → user tetap di halaman workspace, bukan ter-redirect ke login.
+- **Dependency**: Task 3.1.2 (Sprint 1 — API client), Task 2.6.2 (backend refresh + CSRF)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Plugin Nuxt (`app:mounted` hook) — panggil `useAuthRefresh()` sekali saat app load
+- [ ] Tampilkan loading state singkat selama proses (mencegah "flash" ke halaman login sebelum refresh selesai)
+- [ ] E2E test: refresh browser mempertahankan sesi
+
+#### Task 3.4.2: Halaman Device/Session Management
+
+- **Deskripsi**: UI untuk `GET/DELETE /auth/sessions` (Task 2.7.2/2.7.3) dan `POST /auth/logout`/`logout-all` (Task 2.7.0/2.7.1).
+- **Acceptance Criteria**: Daftar sesi aktif ditampilkan (device/IP/waktu), tombol "Logout" (sesi ini saja) terpisah jelas dari tombol "Logout dari semua device" — **UX yang mencerminkan langsung** perbaikan celah desain FR-AUTH-08.
+- **Definition of Done**: E2E test: logout (sesi ini) tidak mempengaruhi sesi lain; logout-all mempengaruhi semua.
+- **Dependency**: Task 3.4.1, Task 2.7.0, 2.7.1, 2.7.2, 2.7.3
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Should *(selaras prioritas backend-nya, Task 2.7.2/2.7.3)*
+
+**Subtask & Checklist**:
+- [ ] Halaman/modal daftar sesi aktif
+- [ ] Tombol "Logout" vs "Logout dari semua device" dibedakan visual jelas (mencegah user salah pencet — pelajaran dari celah FR-AUTH-08)
+- [ ] E2E test: kedua alur logout
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 2 melanjutkan Epic 2 dengan **6 Feature baru, 12 Task**, seluruhnya menuntaskan Sprint Goal "Authentication Lengkap" dari `14-sprint-planning.md`.
+1. Sprint 2 melanjutkan Epic 2 dengan **6 Feature baru, 12 Task** (backend), seluruhnya menuntaskan Sprint Goal "Authentication Lengkap" dari `14-sprint-planning.md`. *(Direvisi: ditambah Epic 3 lanjutan — 2 Feature, 4 Task frontend, amandemen retroaktif.)*
 2. Keputusan final Security Design (HttpOnly Cookie + CSRF double-submit) diimplementasikan presisi di Task 2.4.3 dan 2.6.2 — bukan disederhanakan menjadi localStorage demi kemudahan implementasi.
 3. Rate limiter (Task 2.8.1) sengaja dibuat sebagai `pkg/ratelimit` generic, bukan logic khusus login saja — mengantisipasi pemakaian ulang di rate limiting kirim pesan/upload pada sprint mendatang (Playbook §3.3 kriteria shared package terpenuhi: generic, dipakai berulang, tidak prematur).
 
@@ -298,3 +351,4 @@ Sesuai **Rolling Wave Planning** (`14-sprint-planning.md` §0), dokumen ini mend
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0.0 | Draft awal | Dokumen Sprint 2: 6 Feature, 12 Task lengkap dengan AC/DoD/Dependency/Estimasi, menuntaskan Sprint Goal Authentication Lengkap |
+| 1.1.0 | Amandemen | Ditambahkan task susulan Task 2.7.0 (`POST /auth/logout`, celah desain FR-AUTH-08) dan Epic 3 lanjutan (login.vue, auto re-auth, device management UI) — amandemen retroaktif frontend |

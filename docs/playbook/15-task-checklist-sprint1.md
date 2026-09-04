@@ -1,5 +1,4 @@
 # Detailed Task Checklist — Sprint 1
-
 ## Project: Nexus — Discord-like Realtime Platform
 
 **Dokumen:** Phase 11 — Detailed Task Checklist (Sprint 1: Project Foundation + Awal Authentication)
@@ -33,7 +32,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Buat direktori top-level sesuai Playbook §1.4
 - [x] Inisialisasi git repository, `.gitignore` (Node, Go, IDE, `.env`)
 - [x] Buat `README.md` awal
@@ -50,7 +48,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] `go work init`
 - [x] `cd apps/api && go mod init github.com/<org>/nexus/apps/api`
 - [x] `go work use ./apps/api`
@@ -68,7 +65,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Buat `pnpm-workspace.yaml` di root (`packages: ["apps/*"]`)
 - [x] `pnpm dlx nuxi init apps/web` (Nuxt 4 + TypeScript)
 - [x] Tambahkan TailwindCSS, Pinia, VueUse sesuai stack
@@ -85,7 +81,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Buat `.golangci.yml` (aktifkan `depguard`, `gosec`, `errcheck`, `govet`, `gofmt`)
 - [x] Buat `biome.json` di `apps/web`
 - [x] Install Husky (`pnpm dlx husky-init`), buat hook `commit-msg`
@@ -107,7 +102,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Stage 1: `golang:1.25` — `go build`
 - [x] Stage 2: `gcr.io/distroless/static` atau `alpine` minimal — copy binary
 - [x] Verifikasi image build & run
@@ -123,9 +117,8 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Definisikan service `traefik` dengan label provider Docker
-- [x] Definisikan service `postgres` (image `postgres:18`, volume persisten)
+- [ ] Definisikan service `postgres` (image `postgres:17`, volume persisten)
 - [x] Definisikan service `redis`
 - [x] Definisikan service `minio` (+ `mc` init container untuk membuat bucket awal — `nexus-attachments`, `nexus-avatars`)
 - [x] Definisikan service `api` dengan label Traefik routing `/api`
@@ -148,7 +141,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Job `format-check`: `gofmt -l .`, `biome check`
 - [x] Job `lint`: `golangci-lint run`, `biome lint`
 - [x] Job `security-scan`: `gosec ./...`, `govulncheck ./...`
@@ -172,7 +164,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi handler `/healthz` (selalu 200, tanpa dependency check)
 - [x] Implementasi handler `/readyz` (ping DB `SELECT 1`, ping Redis `PING`)
 - [x] Wire ke router Gin
@@ -195,7 +186,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Install/aktifkan extension `citext` dan fungsi UUID v7 (library `pg_uuidv7` atau fungsi custom PL/pgSQL)
 - [x] Tulis migrasi `20260101000001_create_users_table.sql` (up & down)
 - [x] Tulis migrasi `20260101000002_create_sessions_table.sql` (up & down)
@@ -213,7 +203,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Buat `sqlc.yaml` di `apps/api`
 - [x] Tulis query `CreateUser`, `FindUserByEmailOrUsername`, `CreateSession` (`.sql` file)
 - [x] `sqlc generate`, verifikasi kode ter-generate di `internal/identity/infrastructure/`
@@ -234,7 +223,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi `internal/identity/domain/user.go`
 - [x] Value object `Email` (validasi format)
 - [x] Value object `Username` (3-32 karakter, alfanumerik+underscore)
@@ -251,7 +239,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi `pkg/passwordhash` (generic, tidak bergantung domain — sesuai Playbook §3.2)
 - [x] `Hash(password string) (string, error)` dengan parameter final
 - [x] `Verify(password, encodedHash string) (bool, error)`
@@ -268,7 +255,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi `internal/identity/infrastructure/postgres_user_repository.go`
 - [x] Method `Create(ctx, user) error` — tangani error unique constraint → `ErrDuplicateEmail`/`ErrDuplicateUsername`
 - [x] Method `FindByEmailOrUsername(ctx, identifier) (*User, error)`
@@ -285,7 +271,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi `internal/identity/application/auth_service.go` — method `Register`
 - [x] Mock `UserRepository` untuk unit test service
 - [x] Unit test: register sukses, register email duplikat, register username duplikat
@@ -301,7 +286,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Implementasi `internal/identity/interface/http/register_handler.go`
 - [x] Request DTO + validator tag
 - [x] Mapping error domain → HTTP status code & error code (§16 Playbook, §0 API Spec)
@@ -319,7 +303,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Buat `wire.go` dengan provider set (`NewUserRepository`, `NewAuthService`, `NewRegisterHandler`, dst.)
 - [x] `wire` generate → `wire_gen.go`
 - [x] `main.go` memanggil `InitializeApp()` hasil Wire
@@ -340,7 +323,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Setup Zap logger di `pkg/logger`
 - [x] Tambahkan log `Info` untuk register sukses (tanpa password)
 - [x] Tambahkan log `Warn` untuk register gagal validasi/duplikat
@@ -357,7 +339,6 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-
 - [x] Jalankan seluruh test suite lokal, perbaiki test flaky bila ada
 - [x] Cek coverage report (`go test -coverprofile`)
 - [x] Pastikan CI `main` hijau penuh
@@ -365,11 +346,84 @@ Struktur: **Epic → Feature → Task → Subtask → Checklist**, sesuai instru
 
 ---
 
+## EPIC 3: Frontend Foundation *(amandemen retroaktif — lihat `28-frontend-architecture.md`)*
+
+### Feature 3.1: Setup Nuxt 4 & Tooling Frontend
+
+#### Task 3.1.1: Struktur Direktori & Dependency Inti
+
+- **Deskripsi**: Sesuai Frontend Architecture §2 — struktur `app/components/`, `composables/`, `pages/`, `layouts/`, `stores/`, `plugins/`.
+- **Acceptance Criteria**: Struktur folder sesuai §2; dependency terinstal: Pinia, TanStack Query Vue, TailwindCSS, VueUse, Floating UI, Vue Virtual Scroller.
+- **Definition of Done**: `pnpm --filter web dev` berjalan, halaman default menampilkan layout kosong tanpa error console.
+- **Dependency**: Task 1.1.3 (setup pnpm workspace)
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 2 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Buat struktur folder sesuai Frontend Architecture §2
+- [ ] Install Pinia, `@tanstack/vue-query`, TailwindCSS, VueUse, Floating UI, `vue-virtual-scroller`
+- [ ] Setup `nuxt.config.ts` dasar (modules terdaftar)
+- [ ] Verifikasi dev server jalan tanpa error
+
+#### Task 3.1.2: API Client Plugin dengan Interceptor
+
+- **Deskripsi**: Implementasi persis Frontend Architecture §4.1 — `ofetch` instance dengan `credentials: include`, interceptor 401→refresh.
+- **Acceptance Criteria**: Request ke endpoint terproteksi otomatis menyertakan `Authorization` header dari `session` store; response 401 memicu satu kali percobaan refresh sebelum redirect login.
+- **Definition of Done**: Unit test (mock fetch): skenario token valid, token expired→refresh sukses→retry, refresh gagal→redirect.
+- **Dependency**: Task 3.1.1
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `plugins/api-client.ts` sesuai §4.1
+- [ ] Implementasi `useAuthRefresh()` sesuai §4.2 (CSRF header dari cookie)
+- [ ] Unit test 3 skenario di atas
+
+#### Task 3.1.3: Pinia Store — `session.ts`
+
+- **Deskripsi**: State auth aktif (access token in-memory, user profile) sesuai §3.1.
+- **Acceptance Criteria**: Access token **tidak pernah** ditulis ke localStorage/sessionStorage — murni in-memory (Pinia state hilang saat refresh browser, mengandalkan refresh token cookie untuk re-auth otomatis saat app mount).
+- **Definition of Done**: Code review checklist: pastikan tidak ada `localStorage.setItem` untuk token di manapun.
+- **Dependency**: Task 3.1.1
+- **Estimasi Kesulitan**: Mudah
+- **Estimasi Waktu**: 1 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Implementasi `stores/session.ts` (`accessToken`, `user`, `isAuthenticated` getter)
+- [ ] Verifikasi manual: tidak ada token tersimpan di localStorage/sessionStorage (DevTools Application tab)
+
+---
+
+### Feature 3.2: Halaman Register
+
+#### Task 3.2.1: Halaman `register.vue`
+
+- **Deskripsi**: Form register terhubung ke `POST /auth/register` (Task 2.2.5 backend).
+- **Acceptance Criteria**: Validasi form client-side (format email, panjang password) sebagai UX hint — **backend tetap validasi ulang** (RULES.md §3), form tidak mengasumsikan validasi frontend cukup.
+- **Definition of Done**: E2E test (Playwright): isi form valid → redirect ke halaman login; isi form dengan email sudah terdaftar → pesan error dari backend ditampilkan.
+- **Dependency**: Task 3.1.2, Task 2.2.5 (backend register, sprint yang sama)
+- **Estimasi Kesulitan**: Sedang
+- **Estimasi Waktu**: 2.5 jam
+- **Prioritas**: Must
+
+**Subtask & Checklist**:
+- [ ] Komponen form register (`pages/register.vue`) dengan `TanStack Query useMutation`
+- [ ] Validasi client-side (UX hint), tampilkan error dari backend apa adanya (jangan override pesan backend dengan asumsi sendiri)
+- [ ] E2E test: sukses, error duplikat
+
+> **Catatan**: Halaman `login.vue` **sengaja tidak** dimasukkan ke Sprint 1 — backend login (`POST /auth/login`) baru ada di Sprint 2 (Task 2.4.3). Menaruh task frontend yang bergantung pada backend sprint berikutnya di sini akan melanggar urutan dependency yang konsisten dipakai proyek ini sejak awal. `login.vue` didetailkan di amandemen Sprint 2.
+
+---
+
 ## Ringkasan Keputusan
 
-1. Sprint 1 dipecah menjadi **2 Epic, 7 Feature, 16 Task**, masing-masing dengan Acceptance Criteria dan Definition of Done yang **dapat diverifikasi secara objektif** (bukan subjektif "kelihatannya selesai").
+1. Sprint 1 dipecah menjadi **3 Epic, 9 Feature, 20 Task** *(direvisi — ditambah Epic 3 Frontend Foundation, amandemen retroaktif)*, masing-masing dengan Acceptance Criteria dan Definition of Done yang **dapat diverifikasi secara objektif** (bukan subjektif "kelihatannya selesai").
 2. Urutan task mengikuti dependency eksplisit (Foundation → Migration → Domain → Repository → Service → Handler → Wiring → Testing) — Clean Architecture diterapkan bahkan dalam urutan pengerjaan task, bukan hanya struktur kode.
-3. Total estimasi granular Sprint 1: ± 37 jam kerja aktif, mendukung validasi/kalibrasi terhadap asumsi 2 minggu di Sprint Planning.
+3. Total estimasi granular Sprint 1: ± 37 jam kerja backend + **±10.5 jam frontend** = **±47.5 jam total**, mendukung validasi/kalibrasi terhadap asumsi 2 minggu di Sprint Planning.
+4. **Halaman `login.vue` sengaja tidak dimasukkan Sprint 1** — bergantung pada backend Sprint 2, dipindah ke amandemen Sprint 2 agar urutan dependency tetap konsisten (fitur frontend selalu mengikuti sprint di mana backend pendukungnya selesai).
 
 ## Trade-off yang Diterima
 
@@ -394,6 +448,7 @@ Dengan selesainya dokumen ini, **seluruh rangkaian dokumen perencanaan awal (Pha
 
 ## Changelog
 
-| Versi | Tanggal    | Perubahan                                                                                                                                          |
-| ----- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Versi | Tanggal | Perubahan |
+|---|---|---|
 | 1.0.0 | Draft awal | Dokumen pertama Phase 11, mencakup Sprint 1 (Project Foundation + Awal Authentication) dengan struktur Epic→Feature→Task→Subtask→Checklist lengkap |
+| 1.1.0 | Amandemen | Ditambahkan Epic 3: Frontend Foundation (setup Nuxt 4, API client, Pinia session store, halaman register) — menutup celah cakupan frontend yang ditemukan pasca-Sprint 13, mengacu `28-frontend-architecture.md` |
