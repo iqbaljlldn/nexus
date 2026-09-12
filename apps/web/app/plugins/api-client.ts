@@ -5,7 +5,7 @@ import { useSessionStore } from "../stores/session";
 
 export default defineNuxtPlugin(() => {
 	const apiClient = ofetch.create({
-		baseURL: "/api/v1",
+		baseURL: "http://localhost:8080/api/v1",
 		credentials: "include",
 		onRequest({ options }) {
 			const session = useSessionStore();

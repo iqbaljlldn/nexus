@@ -29,10 +29,10 @@ WORKDIR /app
 # Copy the standalone output from the builder stage
 COPY --from=builder /app/.output ./.output
 
-EXPOSE 3001
+EXPOSE 80
 
 # Set required environment variables
-ENV PORT=3001
+ENV PORT=80
 ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 

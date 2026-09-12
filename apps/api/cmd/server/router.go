@@ -15,9 +15,10 @@ import (
 func NewRouter(
 	log *zap.Logger,
 	routers []router.ModuleRouter,
-
 ) *gin.Engine {
 	r := gin.New()
+
+	r.Use(middleware.CORSMiddleware())
 
 	api := r.Group("/api/v1")
 

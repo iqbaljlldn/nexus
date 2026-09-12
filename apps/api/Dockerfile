@@ -42,6 +42,6 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy the compiled binary
 COPY --from=builder /build/nexus-api /nexus-api
 
-EXPOSE 8080
+EXPOSE 8081
 
 ENTRYPOINT ["/nexus-api"]
