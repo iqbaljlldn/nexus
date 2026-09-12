@@ -1,6 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/iqbaljlldn/nexus/pkg/cache"
 	"github.com/iqbaljlldn/nexus/pkg/config"
 	"github.com/iqbaljlldn/nexus/pkg/database"
@@ -25,6 +33,7 @@ func main() {
 	defer func() {
 		_ = log.Sync()
 	}()
+
 	// Initialize Database
 	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
@@ -43,9 +52,42 @@ func main() {
 		}
 	}()
 
-	r := InitializeRouter(log, db, redisClient)
+	app := InitializeApp(log, db, redisClient)
 
-	if err := r.Run(); err != nil {
-		log.Fatal("Server failed to run", zap.Error(err))
+	addr := cfg.Port
+	if !strings.Contains(addr, ":") {
+		addr = ":" + addr
 	}
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           app.Engine,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	go func() {
+		log.Info("server starting", zap.String("addr", addr))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal("server error", zap.Error(err))
+		}
+	}()
+
+	<-ctx.Done()
+	log.Info("shutdown signal received, draining connections")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Error("forced http server shutdown", zap.Error(err))
+	}
+
+	if app.WSRegistry != nil {
+		app.WSRegistry.CloseAllGracefully(shutdownCtx)
+	}
+
+	log.Info("server shutdown gracefully completed")
 }

@@ -18,6 +18,7 @@ import (
 	identityhttp "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/member"
 	memberDomain "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
+	wsplatform "github.com/iqbaljlldn/nexus/apps/api/internal/platform/websocket"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/role"
 	roleapp "github.com/iqbaljlldn/nexus/apps/api/internal/role/application"
 	roleDomain "github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
@@ -28,12 +29,25 @@ import (
 	"github.com/iqbaljlldn/nexus/pkg/router"
 )
 
+type App struct {
+	Engine     *gin.Engine
+	WSRegistry *wsplatform.ConnectionRegistry
+}
+
+func NewApp(engine *gin.Engine, wsRegistry *wsplatform.ConnectionRegistry) *App {
+	return &App{
+		Engine:     engine,
+		WSRegistry: wsRegistry,
+	}
+}
+
 func provideRouters(
 	healthRouter *healthhttp.Handler,
 	identityRouter *identityhttp.AuthHandler,
 	workspaceRouter *workspacehttp.WorkspaceHandler,
 	roleRouter *rolehttp.RoleHandler,
 	channelRouter *channelhttp.ChannelHandler,
+	wsRouter *wsplatform.Handler,
 ) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
@@ -41,6 +55,7 @@ func provideRouters(
 		workspaceRouter,
 		roleRouter,
 		channelRouter,
+		wsRouter,
 	}
 }
 
@@ -72,6 +87,31 @@ func provideMemberPort(repo memberDomain.MemberRepository) workspaceapp.MemberPo
 	return repo
 }
 
+func InitializeApp(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *App {
+	wire.Build(
+		health.ProviderSet,
+		identity.ProviderSet,
+		member.ProviderSet,
+		workspace.ProviderSet,
+		role.ProviderSet,
+		channel.ProviderSet,
+		wsplatform.ProviderSet,
+
+		provideRoleTxManager,
+		provideRoleCacheInvalidator,
+		provideRolePermResolver,
+		provideChannelPermResolver,
+		provideRolePort,
+		provideMemberPort,
+		provideBaseURL,
+
+		provideRouters,
+		NewRouter,
+		NewApp,
+	)
+	return &App{}
+}
+
 func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
 	wire.Build(
 		health.ProviderSet,
@@ -80,6 +120,7 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 		workspace.ProviderSet,
 		role.ProviderSet,
 		channel.ProviderSet,
+		wsplatform.ProviderSet,
 
 		provideRoleTxManager,
 		provideRoleCacheInvalidator,

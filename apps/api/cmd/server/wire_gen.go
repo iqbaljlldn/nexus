@@ -20,6 +20,7 @@ import (
 	http2 "github.com/iqbaljlldn/nexus/apps/api/internal/identity/interface/http"
 	domain2 "github.com/iqbaljlldn/nexus/apps/api/internal/member/domain"
 	infrastructure3 "github.com/iqbaljlldn/nexus/apps/api/internal/member/infrastructure"
+	"github.com/iqbaljlldn/nexus/apps/api/internal/platform/websocket"
 	application4 "github.com/iqbaljlldn/nexus/apps/api/internal/role/application"
 	"github.com/iqbaljlldn/nexus/apps/api/internal/role/domain"
 	infrastructure4 "github.com/iqbaljlldn/nexus/apps/api/internal/role/infrastructure"
@@ -38,6 +39,50 @@ import (
 )
 
 // Injectors from wire.go:
+
+func InitializeApp(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *App {
+	service := application.NewService(log, db, redisClient)
+	handler := http.NewHandler(service)
+	sqlDB := identity.ProvideDB(db)
+	querier := identity.ProvideQuerier(sqlDB)
+	userRepository := infrastructure.NewPostgresUserRepository(querier)
+	sessionRepository := infrastructure.NewPostgresSessionRepository(sqlDB)
+	tokenManager := identity.ProvideTokenManager()
+	authService := application2.NewAuthService(userRepository, sessionRepository, tokenManager, log)
+	rateLimiter := identity.ProvideRateLimiter(redisClient)
+	loginRateLimiter := identity.ProvideLoginRateLimiter(rateLimiter, redisClient)
+	authHandler := http2.NewAuthHandler(authService, loginRateLimiter)
+	workspaceRepository := infrastructure2.NewPostgresWorkspaceRepository(sqlDB)
+	memberRepository := infrastructure3.NewPostgresMemberRepository(sqlDB)
+	memberPort := provideMemberPort(memberRepository)
+	roleRepository := infrastructure4.NewPostgresRoleRepository(sqlDB)
+	rolePort := provideRolePort(roleRepository)
+	postgresTransactionManager := infrastructure2.NewPostgresTransactionManager(sqlDB)
+	workspaceService := application3.NewWorkspaceService(workspaceRepository, memberPort, rolePort, postgresTransactionManager, log)
+	inviteRepository := infrastructure2.NewPostgresInviteRepository(sqlDB)
+	inviteService := application3.NewInviteService(inviteRepository, memberPort, rolePort, postgresTransactionManager, log)
+	string2 := provideBaseURL()
+	workspaceHandler := http3.NewWorkspaceHandler(workspaceService, inviteService, string2)
+	transactionManager := provideRoleTxManager(postgresTransactionManager)
+	channelOverridePort := infrastructure2.NewPostgresChannelOverrideRepository(sqlDB)
+	permissionResolver := application3.NewPermissionResolver(workspaceRepository, memberPort, channelOverridePort, rolePort)
+	cachedPermissionResolver := application3.NewCachedPermissionResolver(permissionResolver, redisClient, log)
+	permissionCacheInvalidator := provideRoleCacheInvalidator(cachedPermissionResolver)
+	roleService := application4.NewRoleService(roleRepository, transactionManager, permissionCacheInvalidator, log)
+	httpPermissionResolver := provideRolePermResolver(cachedPermissionResolver)
+	roleHandler := http4.NewRoleHandler(roleService, httpPermissionResolver)
+	dbtx := channel.ProvideDB(sqlDB)
+	postgresChannelRepository := infrastructure5.NewPostgresChannelRepository(dbtx)
+	channelService := application5.NewChannelService(postgresChannelRepository, log)
+	permissionResolver2 := provideChannelPermResolver(cachedPermissionResolver)
+	channelHandler := http5.NewChannelHandler(channelService, permissionResolver2)
+	connectionRegistry := websocket.NewConnectionRegistry(log)
+	websocketHandler := websocket.NewHandler(connectionRegistry, log)
+	v := provideRouters(handler, authHandler, workspaceHandler, roleHandler, channelHandler, websocketHandler)
+	engine := NewRouter(log, v)
+	app := NewApp(engine, connectionRegistry)
+	return app
+}
 
 func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Client) *gin.Engine {
 	service := application.NewService(log, db, redisClient)
@@ -75,12 +120,26 @@ func InitializeRouter(log *zap.Logger, db *pgxpool.Pool, redisClient *redis.Clie
 	channelService := application5.NewChannelService(postgresChannelRepository, log)
 	permissionResolver2 := provideChannelPermResolver(cachedPermissionResolver)
 	channelHandler := http5.NewChannelHandler(channelService, permissionResolver2)
-	v := provideRouters(handler, authHandler, workspaceHandler, roleHandler, channelHandler)
+	connectionRegistry := websocket.NewConnectionRegistry(log)
+	websocketHandler := websocket.NewHandler(connectionRegistry, log)
+	v := provideRouters(handler, authHandler, workspaceHandler, roleHandler, channelHandler, websocketHandler)
 	engine := NewRouter(log, v)
 	return engine
 }
 
 // wire.go:
+
+type App struct {
+	Engine     *gin.Engine
+	WSRegistry *websocket.ConnectionRegistry
+}
+
+func NewApp(engine *gin.Engine, wsRegistry *websocket.ConnectionRegistry) *App {
+	return &App{
+		Engine:     engine,
+		WSRegistry: wsRegistry,
+	}
+}
 
 func provideRouters(
 	healthRouter *http.Handler,
@@ -88,6 +147,7 @@ func provideRouters(
 	workspaceRouter *http3.WorkspaceHandler,
 	roleRouter *http4.RoleHandler,
 	channelRouter *http5.ChannelHandler,
+	wsRouter *websocket.Handler,
 ) []router.ModuleRouter {
 	return []router.ModuleRouter{
 		healthRouter,
@@ -95,6 +155,7 @@ func provideRouters(
 		workspaceRouter,
 		roleRouter,
 		channelRouter,
+		wsRouter,
 	}
 }
 

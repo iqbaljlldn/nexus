@@ -34,11 +34,11 @@ Sesuai **Rolling Wave Planning**, dokumen ini adalah detail pertama untuk **Rele
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `internal/platform/websocket/upgrader.go` (Gorilla WebSocket)
-- [ ] Validasi token dari query param sebelum `upgrader.Upgrade()`
-- [ ] Validasi header `Origin` terhadap domain aplikasi yang diizinkan (Security Design §7)
-- [ ] Close code `4001` untuk auth gagal
-- [ ] Test: token invalid, token expired, Origin tidak diizinkan, koneksi valid
+- [x] Implementasi `internal/platform/websocket/upgrader.go` (Gorilla WebSocket)
+- [x] Validasi token dari query param sebelum `upgrader.Upgrade()`
+- [x] Validasi header `Origin` terhadap domain aplikasi yang diizinkan (Security Design §7)
+- [x] Close code `4001` untuk auth gagal
+- [x] Test: token invalid, token expired, Origin tidak diizinkan, koneksi valid
 
 #### Task 6.1.2: ConnectionRegistry — Single Writer per Connection
 
@@ -51,12 +51,12 @@ Sesuai **Rolling Wave Planning**, dokumen ini adalah detail pertama untuk **Rele
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Implementasi `Connection` struct: `sendCh chan []byte` (buffered, ukuran awal 64 — akan dituning Milestone 11), goroutine writer terpisah membaca dari `sendCh`
-- [ ] Goroutine reader terpisah menangani pesan masuk (typing, presence, heartbeat)
-- [ ] Implementasi `ConnectionRegistry` (`map[uuid.UUID]map[*Connection]struct{}`, `sync.RWMutex`)
-- [ ] Method `Broadcast(channelID, msg)` — copy snapshot sebelum lepas lock, non-blocking send dengan `select`/`default` (LLD §2.9 persis)
-- [ ] Test race detector: broadcast simultan dari 2 goroutine berbeda ke koneksi yang sama
-- [ ] Test slow consumer: koneksi yang tidak membaca `sendCh` di-drop tanpa memblokir broadcast lain
+- [x] Implementasi `Connection` struct: `sendCh chan []byte` (buffered, ukuran awal 64 — akan dituning Milestone 11), goroutine writer terpisah membaca dari `sendCh`
+- [x] Goroutine reader terpisah menangani pesan masuk (typing, presence, heartbeat)
+- [x] Implementasi `ConnectionRegistry` (`map[uuid.UUID]map[*Connection]struct{}`, `sync.RWMutex`)
+- [x] Method `Broadcast(channelID, msg)` — copy snapshot sebelum lepas lock, non-blocking send dengan `select`/`default` (LLD §2.9 persis)
+- [x] Test race detector: broadcast simultan dari 2 goroutine berbeda ke koneksi yang sama
+- [x] Test slow consumer: koneksi yang tidak membaca `sendCh` di-drop tanpa memblokir broadcast lain
 
 #### Task 6.1.3: Ping/Pong Heartbeat & Graceful Close
 
@@ -69,10 +69,10 @@ Sesuai **Rolling Wave Planning**, dokumen ini adalah detail pertama untuk **Rele
 - **Prioritas**: Must
 
 **Subtask & Checklist**:
-- [ ] Set `PongHandler`, kirim ping berkala dari writer goroutine
-- [ ] Timeout: tutup koneksi & unregister dari `ConnectionRegistry` bila pong tidak diterima
-- [ ] Integrasi dengan graceful shutdown aplikasi (LLD §3 — `wsHub.CloseAllGracefully`)
-- [ ] Test: koneksi tanpa pong dibersihkan otomatis
+- [x] Set `PongHandler`, kirim ping berkala dari writer goroutine
+- [x] Timeout: tutup koneksi & unregister dari `ConnectionRegistry` bila pong tidak diterima
+- [x] Integrasi dengan graceful shutdown aplikasi (LLD §3 — `wsHub.CloseAllGracefully`)
+- [x] Test: koneksi tanpa pong dibersihkan otomatis
 
 #### Task 6.1.4: Payload Size Limit & Rate Limit Koneksi
 
